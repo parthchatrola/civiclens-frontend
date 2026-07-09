@@ -38,11 +38,9 @@ const Navbar = () => {
           </>
         )}
         
-        {/* Admin has NO Dashboard or Manage links */}
+        {/* Admin has no extra links */}
         {user.role === 'admin' && (
-          <>
-            {/* No links shown for admin - only Profile, Theme, Logout */}
-          </>
+          <></>
         )}
         
         <Link to="/profile" style={styles.link}>Profile</Link>
@@ -59,6 +57,7 @@ const Navbar = () => {
   );
 };
 
+// ===== STYLES – Clean, no border, no shadow =====
 const styles = {
   nav: {
     display: 'flex',
@@ -66,14 +65,15 @@ const styles = {
     alignItems: 'center',
     padding: '12px 40px',
     background: 'var(--bg-secondary, #ffffff)',
-    boxShadow: '0 1px 20px rgba(0,0,0,0.04)',
+    // ✅ Removed boxShadow – no line
+    // boxShadow: '0 1px 20px rgba(0,0,0,0.04)',
     position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 1000,
-    borderBottom: '1px solid var(--border-color, #e2e8f0)',
-    transition: 'background 0.3s, border-color 0.3s',
+    borderBottom: 'none', // ✅ No border
+    transition: 'background 0.3s',
     width: '100%',
   },
   logo: {

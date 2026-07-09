@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const CameraPage = () => {
   const navigate = useNavigate();
@@ -10,11 +10,18 @@ const CameraPage = () => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [facingMode, setFacingMode] = useState('environment'); // 'environment' | 'user'
+  const [facingMode, setFacingMode] = useState('environment');
   const [error, setError] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // ===== START CAMERA =====
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       setError('');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -44,19 +51,19 @@ const CameraPage = () => {
         setError('Failed to access camera. Please try again.');
       }
     }
-  };
+  }, [facingMode]);
 
   // ===== STOP CAMERA =====
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
     setIsCameraReady(false);
-  };
+  }, [stream]);
 
   // ===== CAPTURE PHOTO =====
-  const capturePhoto = () => {
+  const capturePhoto = useCallback(async () => {
     if (!videoRef.current || !isCameraReady) return;
 
     setIsCapturing(true);
@@ -67,7 +74,6 @@ const CameraPage = () => {
     canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     
-    // Mirror the image if using front camera
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
@@ -75,22 +81,24 @@ const CameraPage = () => {
     
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    const imageData = canvas.toDataURL('image/jpeg', 0.95);
-    setCapturedImage(imageData);
-    setIsCapturing(false);
-    stopCamera();
-  };
+    const imageData = canvas.toDataURL("image/jpeg");
+    const blob = await (await fetch(imageData)).blob();
+    const file = new File([blob], "camera.jpg", { type: "image/jpeg" });
+
+    navigate("/report-issue", {
+      state: { capturedImage: file }
+    });
+  }, [isCameraReady, facingMode, navigate]);
 
   // ===== FLIP CAMERA =====
   const flipCamera = () => {
     const newMode = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(newMode);
     stopCamera();
-    // Start camera with new mode after a small delay
     setTimeout(() => startCamera(), 300);
   };
 
-  // ===== USE PHOTO (Go back to report page) =====
+  // ===== USE PHOTO =====
   const usePhoto = () => {
     navigate('/report-issue', { state: { capturedImage } });
   };
@@ -102,10 +110,10 @@ const CameraPage = () => {
   };
 
   // ===== GO BACK =====
-  const goBack = () => {
+  const goBack = useCallback(() => {
     stopCamera();
     navigate(-1);
-  };
+  }, [stopCamera, navigate]);
 
   // ===== START CAMERA ON MOUNT =====
   useEffect(() => {
@@ -113,7 +121,7 @@ const CameraPage = () => {
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [startCamera, stopCamera]);
 
   // ===== KEYBOARD SHORTCUTS =====
   useEffect(() => {
@@ -127,26 +135,54 @@ const CameraPage = () => {
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isCameraReady, capturedImage]);
+  }, [isCameraReady, capturedImage, capturePhoto, goBack]);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      style={styles.container}
+      style={{
+        ...styles.container,
+        padding: isMobile ? '12px' : '20px',
+      }}
     >
       {/* ===== HEADER ===== */}
       <motion.div
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        style={styles.header}
+        style={{
+          ...styles.header,
+          padding: isMobile ? '4px 0' : '8px 4px',
+        }}
       >
-        <button onClick={goBack} style={styles.closeBtn}>✕</button>
-        <span style={styles.headerTitle}>📷 Camera</span>
+        <button
+          onClick={goBack}
+          style={{
+            ...styles.closeBtn,
+            width: isMobile ? '36px' : '44px',
+            height: isMobile ? '36px' : '44px',
+            fontSize: isMobile ? '18px' : '20px',
+          }}
+        >
+          ✕
+        </button>
+        <span style={{
+          ...styles.headerTitle,
+          fontSize: isMobile ? '16px' : '18px',
+        }}>
+          📷 Camera
+        </span>
         {isCameraReady && !capturedImage && (
-          <button onClick={flipCamera} style={styles.flipBtn}>
+          <button
+            onClick={flipCamera}
+            style={{
+              ...styles.flipBtn,
+              padding: isMobile ? '6px 14px' : '8px 16px',
+              fontSize: isMobile ? '13px' : '14px',
+            }}
+          >
             🔄 Flip
           </button>
         )}
@@ -157,7 +193,10 @@ const CameraPage = () => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.3, type: 'spring', stiffness: 300, damping: 25 }}
-        style={styles.viewfinder}
+        style={{
+          ...styles.viewfinder,
+          borderRadius: isMobile ? '16px' : '24px',
+        }}
       >
         {!capturedImage ? (
           <>
@@ -176,19 +215,39 @@ const CameraPage = () => {
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
-                  style={styles.spinner}
+                  style={{
+                    ...styles.spinner,
+                    width: isMobile ? '40px' : '48px',
+                    height: isMobile ? '40px' : '48px',
+                  }}
                 />
-                <p style={styles.loadingText}>Starting camera...</p>
+                <p style={{
+                  ...styles.loadingText,
+                  fontSize: isMobile ? '14px' : '16px',
+                }}>
+                  Starting camera...
+                </p>
               </div>
             )}
             {error && (
               <div style={styles.errorOverlay}>
                 <span style={styles.errorIcon}>⚠️</span>
-                <p style={styles.errorText}>{error}</p>
-                <button onClick={startCamera} style={styles.retryBtn}>Retry</button>
+                <p style={{
+                  ...styles.errorText,
+                  fontSize: isMobile ? '14px' : '16px',
+                }}>
+                  {error}
+                </p>
+                <button onClick={startCamera} style={{
+                  ...styles.retryBtn,
+                  padding: isMobile ? '8px 24px' : '10px 30px',
+                  fontSize: isMobile ? '14px' : '16px',
+                }}>
+                  Retry
+                </button>
               </div>
             )}
-            {/* Grid Overlay (Rule of Thirds) */}
+            {/* Grid Overlay */}
             <div style={styles.gridOverlay}>
               <div style={styles.gridLineHorizontal} />
               <div style={styles.gridLineHorizontal2} />
@@ -204,12 +263,21 @@ const CameraPage = () => {
             style={styles.previewContainer}
           >
             <img src={capturedImage} alt="Captured" style={styles.previewImage} />
-            <div style={styles.previewActions}>
+            <div style={{
+              ...styles.previewActions,
+              bottom: isMobile ? '20px' : '30px',
+              gap: isMobile ? '12px' : '20px',
+              padding: isMobile ? '0 12px' : '0 20px',
+            }}>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={retakePhoto}
-                style={styles.retakeBtn}
+                style={{
+                  ...styles.retakeBtn,
+                  padding: isMobile ? '10px 20px' : '12px 30px',
+                  fontSize: isMobile ? '14px' : '16px',
+                }}
               >
                 🔄 Retake
               </motion.button>
@@ -217,7 +285,11 @@ const CameraPage = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={usePhoto}
-                style={styles.useBtn}
+                style={{
+                  ...styles.useBtn,
+                  padding: isMobile ? '10px 20px' : '12px 30px',
+                  fontSize: isMobile ? '14px' : '16px',
+                }}
               >
                 ✅ Use Photo
               </motion.button>
@@ -225,7 +297,7 @@ const CameraPage = () => {
           </motion.div>
         )}
 
-        {/* Hidden Canvas for Capture */}
+        {/* Hidden Canvas */}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </motion.div>
 
@@ -235,7 +307,11 @@ const CameraPage = () => {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4, type: 'spring', stiffness: 300, damping: 25 }}
-          style={styles.captureSection}
+          style={{
+            ...styles.captureSection,
+            paddingBottom: isMobile ? '12px' : '20px',
+            gap: isMobile ? '8px' : '12px',
+          }}
         >
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -250,6 +326,10 @@ const CameraPage = () => {
             disabled={!isCameraReady || isCapturing}
             style={{
               ...styles.captureBtn,
+              width: isMobile ? '60px' : '72px',
+              height: isMobile ? '60px' : '72px',
+              borderWidth: isMobile ? '3px' : '4px',
+              padding: isMobile ? '4px' : '6px',
               opacity: isCapturing ? 0.6 : 1,
             }}
           >
@@ -263,7 +343,12 @@ const CameraPage = () => {
               style={styles.captureInner}
             />
           </motion.button>
-          <p style={styles.captureHint}>Press Enter or tap to capture</p>
+          <p style={{
+            ...styles.captureHint,
+            fontSize: isMobile ? '12px' : '13px',
+          }}>
+            Press Enter or tap to capture
+          </p>
         </motion.div>
       )}
     </motion.div>
@@ -399,7 +484,6 @@ const styles = {
     fontWeight: '600',
     cursor: 'pointer',
   },
-  // Grid Overlay (Rule of Thirds)
   gridOverlay: {
     position: 'absolute',
     top: 0,
@@ -441,7 +525,6 @@ const styles = {
     width: '1px',
     background: 'rgba(255,255,255,0.5)',
   },
-  // Preview
   previewContainer: {
     width: '100%',
     height: '100%',
@@ -484,7 +567,6 @@ const styles = {
     cursor: 'pointer',
     boxShadow: '0 4px 20px rgba(72,187,120,0.3)',
   },
-  // Capture Button
   captureSection: {
     display: 'flex',
     flexDirection: 'column',

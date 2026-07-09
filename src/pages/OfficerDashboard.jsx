@@ -15,19 +15,21 @@ const OfficerDashboard = () => {
   const [pendingComplaints, setPendingComplaints] = useState([]);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('assigned'); // 'assigned' or 'pending'
+  const [activeTab, setActiveTab] = useState('assigned');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // Load data when page loads or when changes happen
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const loadData = () => {
     const currentUser = JSON.parse(localStorage.getItem('civiclens_current_user'));
     if (currentUser && currentUser.role === 'officer') {
       setUser(currentUser);
-      
-      // Get complaints assigned to this officer
       const assigned = getAssignedComplaints(currentUser.id);
       setAssignedComplaints(assigned);
-      
-      // Get pending complaints (available to claim)
       const pending = getPendingComplaints();
       setPendingComplaints(pending);
     }
@@ -37,59 +39,91 @@ const OfficerDashboard = () => {
     loadData();
   }, []);
 
-  // -------- CLAIM COMPLAINT --------
   const handleClaim = (complaintId) => {
     if (!user) return;
     setLoading(true);
     claimComplaint(complaintId, user.id);
-    // Refresh data
     loadData();
     setLoading(false);
     showToast('✅ Complaint claimed successfully!', 'success');
   };
 
-  // -------- UPDATE STATUS --------
   const handleStatusUpdate = (complaintId, newStatus, remark) => {
     if (!user) return;
     setLoading(true);
     updateComplaintWithRemark(complaintId, newStatus, remark, user.name);
-    // Refresh data
     loadData();
     setLoading(false);
     showToast('✅ Status updated successfully!', 'success');
-    // Close modal if open
     setSelectedComplaint(null);
   };
 
-  // -------- VIEW DETAILS (Modal) --------
   const handleViewDetails = (complaintId) => {
     const complaint = getComplaintById(complaintId);
     setSelectedComplaint(complaint);
   };
 
-  // -------- RENDER FUNCTIONS --------
   const renderComplaintCard = (complaint, showClaimBtn = false) => (
-    <div key={complaint.id} style={styles.card}>
+    <div key={complaint.id} style={{
+      ...styles.card,
+      padding: isMobile ? '16px' : '20px',
+    }}>
       <div style={styles.cardHeader}>
-        <h3 style={styles.cardTitle}>{complaint.title}</h3>
+        <h3 style={{
+          ...styles.cardTitle,
+          fontSize: isMobile ? '15px' : '16px',
+        }}>
+          {complaint.title}
+        </h3>
         <span style={{
           ...styles.statusBadge,
           background: complaint.status === 'Resolved' ? '#c6f6d5' : '#fefcbf',
           color: complaint.status === 'Resolved' ? '#276749' : '#975a16',
+          fontSize: isMobile ? '11px' : '12px',
+          padding: isMobile ? '3px 10px' : '4px 12px',
         }}>
           {complaint.status}
         </span>
       </div>
-      <p style={styles.cardCategory}>📂 {complaint.category}</p>
-      <p style={styles.cardDesc}>{complaint.description?.slice(0, 80)}...</p>
-      <p style={styles.cardDate}>📅 {new Date(complaint.createdAt).toLocaleDateString()}</p>
-      <div style={styles.cardActions}>
-        <button style={styles.viewBtn} onClick={() => handleViewDetails(complaint.id)}>
+      <p style={{
+        ...styles.cardCategory,
+        fontSize: isMobile ? '13px' : '14px',
+      }}>
+        📂 {complaint.category}
+      </p>
+      <p style={{
+        ...styles.cardDesc,
+        fontSize: isMobile ? '13px' : '14px',
+      }}>
+        {complaint.description?.slice(0, 80)}...
+      </p>
+      <p style={{
+        ...styles.cardDate,
+        fontSize: isMobile ? '12px' : '13px',
+      }}>
+        📅 {new Date(complaint.createdAt).toLocaleDateString()}
+      </p>
+      <div style={{
+        ...styles.cardActions,
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '8px' : '10px',
+      }}>
+        <button style={{
+          ...styles.viewBtn,
+          padding: isMobile ? '10px 16px' : '8px 16px',
+          fontSize: isMobile ? '14px' : '15px',
+          width: isMobile ? '100%' : 'auto',
+        }} onClick={() => handleViewDetails(complaint.id)}>
           👁️ View Details
         </button>
         {showClaimBtn && (
           <button 
-            style={styles.claimBtn} 
+            style={{
+              ...styles.claimBtn,
+              padding: isMobile ? '10px 16px' : '8px 16px',
+              fontSize: isMobile ? '14px' : '15px',
+              width: isMobile ? '100%' : 'auto',
+            }}
             onClick={() => handleClaim(complaint.id)}
             disabled={loading}
           >
@@ -100,7 +134,6 @@ const OfficerDashboard = () => {
     </div>
   );
 
-  // If not logged in as officer
   if (!user) {
     return <div style={{ textAlign: 'center', marginTop: '50px' }}>Please login as an officer to access this dashboard.</div>;
   }
@@ -108,35 +141,68 @@ const OfficerDashboard = () => {
   return (
     <div>
       <Navbar />
-      <div style={styles.container}>
-        <h2>👮 Officer Dashboard</h2>
-        <p style={styles.subtitle}>Welcome back, {user.name}! Manage complaints assigned to you or claim new ones.</p>
+      <div style={{
+        ...styles.container,
+        padding: isMobile ? '80px 16px 30px' : '30px 20px',
+        margin: isMobile ? '0' : '30px auto',
+      }}>
+        <h2 style={{ fontSize: isMobile ? '24px' : '32px' }}>👮 Officer Dashboard</h2>
+        <p style={{
+          ...styles.subtitle,
+          fontSize: isMobile ? '14px' : '16px',
+        }}>
+          Welcome back, {user.name}! Manage complaints assigned to you or claim new ones.
+        </p>
 
         {/* Tab Navigation */}
-        <div style={styles.tabs}>
+        <div style={{
+          ...styles.tabs,
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? '8px' : '10px',
+          paddingBottom: isMobile ? '8px' : '10px',
+        }}>
           <button 
-            style={{ ...styles.tab, ...(activeTab === 'assigned' ? styles.tabActive : {}) }}
+            style={{
+              ...styles.tab,
+              ...(activeTab === 'assigned' ? styles.tabActive : {}),
+              padding: isMobile ? '12px 16px' : '10px 24px',
+              fontSize: isMobile ? '15px' : '16px',
+              width: isMobile ? '100%' : 'auto',
+            }}
             onClick={() => setActiveTab('assigned')}
           >
             📋 Assigned ({assignedComplaints.length})
           </button>
           <button 
-            style={{ ...styles.tab, ...(activeTab === 'pending' ? styles.tabActive : {}) }}
+            style={{
+              ...styles.tab,
+              ...(activeTab === 'pending' ? styles.tabActive : {}),
+              padding: isMobile ? '12px 16px' : '10px 24px',
+              fontSize: isMobile ? '15px' : '16px',
+              width: isMobile ? '100%' : 'auto',
+            }}
             onClick={() => setActiveTab('pending')}
           >
             🆕 Available ({pendingComplaints.length})
           </button>
         </div>
 
-        {/* Tab Content */}
         {activeTab === 'assigned' ? (
           <div>
             {assignedComplaints.length === 0 ? (
-              <div style={styles.empty}>
+              <div style={{
+                ...styles.empty,
+                padding: isMobile ? '30px 16px' : '40px',
+                fontSize: isMobile ? '14px' : '16px',
+              }}>
                 <p>No complaints assigned to you yet. Check the "Available" tab to claim new ones!</p>
               </div>
             ) : (
-              <div style={styles.grid}>
+              <div style={{
+                ...styles.grid,
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+                gap: isMobile ? '16px' : '20px',
+              }}>
                 {assignedComplaints.map(c => renderComplaintCard(c, false))}
               </div>
             )}
@@ -144,42 +210,79 @@ const OfficerDashboard = () => {
         ) : (
           <div>
             {pendingComplaints.length === 0 ? (
-              <div style={styles.empty}>
+              <div style={{
+                ...styles.empty,
+                padding: isMobile ? '30px 16px' : '40px',
+                fontSize: isMobile ? '14px' : '16px',
+              }}>
                 <p>No pending complaints available. All caught up! 🎉</p>
               </div>
             ) : (
-              <div style={styles.grid}>
+              <div style={{
+                ...styles.grid,
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))',
+                gap: isMobile ? '16px' : '20px',
+              }}>
                 {pendingComplaints.map(c => renderComplaintCard(c, true))}
               </div>
             )}
           </div>
         )}
 
-        {/* -------- MODAL: COMPLAINT DETAILS + STATUS UPDATE -------- */}
+        {/* Modal */}
         {selectedComplaint && (
           <div style={styles.modalOverlay} onClick={() => setSelectedComplaint(null)}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <button style={styles.closeBtn} onClick={() => setSelectedComplaint(null)}>✕</button>
+            <div style={{
+              ...styles.modal,
+              padding: isMobile ? '24px 20px' : '30px',
+              maxWidth: isMobile ? '95%' : '550px',
+            }} onClick={(e) => e.stopPropagation()}>
+              <button style={{
+                ...styles.closeBtn,
+                fontSize: isMobile ? '22px' : '24px',
+              }} onClick={() => setSelectedComplaint(null)}>✕</button>
               
-              <h3 style={styles.modalTitle}>{selectedComplaint.title}</h3>
-              <p style={styles.modalCategory}>📂 Category: {selectedComplaint.category}</p>
-              <p style={styles.modalDesc}>📝 {selectedComplaint.description}</p>
-              <p style={styles.modalDesc}>📍 Location: {selectedComplaint.location || 'Not provided'}</p>
+              <h3 style={{
+                ...styles.modalTitle,
+                fontSize: isMobile ? '20px' : '24px',
+              }}>{selectedComplaint.title}</h3>
+              <p style={{
+                ...styles.modalCategory,
+                fontSize: isMobile ? '13px' : '14px',
+              }}>📂 Category: {selectedComplaint.category}</p>
+              <p style={{
+                ...styles.modalDesc,
+                fontSize: isMobile ? '14px' : '15px',
+                padding: isMobile ? '10px 14px' : '12px',
+              }}>📝 {selectedComplaint.description}</p>
+              <p style={{
+                ...styles.modalDesc,
+                fontSize: isMobile ? '14px' : '15px',
+                padding: isMobile ? '10px 14px' : '12px',
+              }}>📍 Location: {selectedComplaint.location || 'Not provided'}</p>
               
-              {/* Image Preview */}
               {selectedComplaint.image && (
                 <div style={styles.imageContainer}>
-                  <img src={selectedComplaint.image} alt="Complaint" style={styles.modalImage} />
+                  <img src={selectedComplaint.image} alt="Complaint" style={{
+                    ...styles.modalImage,
+                    maxHeight: isMobile ? '150px' : '200px',
+                  }} />
                 </div>
               )}
 
               <div style={styles.divider}></div>
 
-              {/* Status Update */}
               <div style={styles.updateSection}>
-                <label style={styles.label}>Update Status:</label>
+                <label style={{
+                  ...styles.label,
+                  fontSize: isMobile ? '14px' : '15px',
+                }}>Update Status:</label>
                 <select 
-                  style={styles.select} 
+                  style={{
+                    ...styles.select,
+                    padding: isMobile ? '10px 14px' : '10px 14px',
+                    fontSize: isMobile ? '14px' : '15px',
+                  }}
                   value={selectedComplaint.status}
                   onChange={(e) => {
                     setSelectedComplaint({ ...selectedComplaint, status: e.target.value });
@@ -192,17 +295,28 @@ const OfficerDashboard = () => {
                   <option value="Resolved">Resolved</option>
                 </select>
                 
-                {/* Remarks Input */}
-                <label style={{ ...styles.label, marginTop: '15px' }}>Add Remark (Optional):</label>
+                <label style={{
+                  ...styles.label,
+                  fontSize: isMobile ? '14px' : '15px',
+                  marginTop: '15px',
+                }}>Add Remark (Optional):</label>
                 <input 
                   type="text" 
                   id="remarkInput"
                   placeholder="e.g. Inspected the site, work started..."
-                  style={styles.remarkInput}
+                  style={{
+                    ...styles.remarkInput,
+                    padding: isMobile ? '10px 14px' : '10px 14px',
+                    fontSize: isMobile ? '14px' : '15px',
+                  }}
                 />
                 
                 <button 
-                  style={styles.updateBtn}
+                  style={{
+                    ...styles.updateBtn,
+                    padding: isMobile ? '12px' : '12px',
+                    fontSize: isMobile ? '16px' : '17px',
+                  }}
                   onClick={() => {
                     const remark = document.getElementById('remarkInput').value;
                     handleStatusUpdate(selectedComplaint.id, selectedComplaint.status, remark);
@@ -213,14 +327,25 @@ const OfficerDashboard = () => {
                 </button>
               </div>
 
-              {/* Remarks History */}
               {selectedComplaint.remarks && selectedComplaint.remarks.length > 0 && (
                 <div style={styles.remarksSection}>
-                  <h4 style={styles.remarksTitle}>📝 Activity Log</h4>
+                  <h4 style={{
+                    ...styles.remarksTitle,
+                    fontSize: isMobile ? '16px' : '18px',
+                  }}>📝 Activity Log</h4>
                   {selectedComplaint.remarks.map((remark, idx) => (
-                    <div key={idx} style={styles.remarkItem}>
-                      <p style={styles.remarkText}>💬 {remark.text}</p>
-                      <p style={styles.remarkMeta}>— {remark.officer} on {new Date(remark.timestamp).toLocaleString()}</p>
+                    <div key={idx} style={{
+                      ...styles.remarkItem,
+                      padding: isMobile ? '10px 14px' : '10px 14px',
+                    }}>
+                      <p style={{
+                        ...styles.remarkText,
+                        fontSize: isMobile ? '14px' : '15px',
+                      }}>💬 {remark.text}</p>
+                      <p style={{
+                        ...styles.remarkMeta,
+                        fontSize: isMobile ? '12px' : '13px',
+                      }}>— {remark.officer} on {new Date(remark.timestamp).toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
@@ -233,7 +358,7 @@ const OfficerDashboard = () => {
   );
 };
 
-// ===== STYLES - DARK MODE FIXED =====
+// ===== STYLES - Responsive =====
 const styles = {
   container: {
     maxWidth: '1100px',
@@ -260,6 +385,7 @@ const styles = {
     fontWeight: '600',
     color: 'var(--text-secondary, #718096)',
     width: 'auto',
+    transition: 'all 0.3s',
   },
   tabActive: {
     background: '#48bb78',
@@ -325,6 +451,7 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '500',
     width: 'auto',
+    transition: 'all 0.3s',
   },
   claimBtn: {
     padding: '8px 16px',
@@ -335,6 +462,7 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '500',
     width: 'auto',
+    transition: 'all 0.3s',
   },
   empty: {
     textAlign: 'center',
@@ -343,7 +471,6 @@ const styles = {
     borderRadius: '16px',
     color: 'var(--text-secondary, #718096)',
   },
-  // Modal Styles - Dark Mode Ready
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -448,6 +575,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',
+    transition: 'all 0.3s',
   },
   remarksSection: {
     marginTop: '20px',

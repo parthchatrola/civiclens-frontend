@@ -1,9 +1,31 @@
+/* ===== FULL WIDTH RESET ===== */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Remove any container padding */
+body {
+  background: var(--bg-primary);
+}
+
+/* Ensure root takes full width */
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ===== RESET & BASE ===== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
+
+
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -70,9 +92,9 @@ body {
   width: 100%;
   padding: 12px 16px;
   border: 2px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 14px;
-  transition: border 0.3s;
+  transition: border 0.3s, box-shadow 0.3s;
   background: var(--bg-input);
   color: var(--text-primary);
 }
@@ -86,7 +108,7 @@ body {
   outline: none;
   border-color: #48bb78;
   background: var(--bg-input);
-  box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.15);
+  box-shadow: 0 0 0 4px rgba(72, 187, 120, 0.12);
 }
 
 /* ===== BUTTONS ===== */
@@ -96,7 +118,7 @@ button {
   background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 40px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -118,7 +140,7 @@ button:disabled {
   background: #fed7d7;
   color: #e53e3e;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   margin-bottom: 16px;
   font-size: 14px;
   text-align: center;
@@ -128,7 +150,7 @@ button:disabled {
   background: #c6f6d5;
   color: #276749;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   margin-bottom: 16px;
   font-size: 14px;
   text-align: center;
@@ -152,25 +174,12 @@ button:disabled {
   color: #2f855a;
 }
 
-/* ===== TOAST ANIMATIONS ===== */
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-
 /* ===== DEMO CREDENTIALS ===== */
 .demo-credentials {
   margin-top: 20px;
   padding: 14px;
   background: #f0fff4;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 12px;
   color: #4a5568;
   text-align: left;
@@ -181,7 +190,7 @@ button:disabled {
   margin: 4px 0;
 }
 
-/* ===== HOME PAGE ===== */
+/* ===== HOME PAGE (additional styles for new look) ===== */
 .home-container {
   display: flex;
   justify-content: center;
@@ -195,7 +204,7 @@ button:disabled {
 .hero-section {
   background: white;
   padding: 50px 60px;
-  border-radius: 20px;
+  border-radius: 24px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
   max-width: 600px;
   border: 1px solid #e2e8f0;
@@ -223,7 +232,7 @@ button:disabled {
 .btn-primary,
 .btn-secondary {
   padding: 14px 40px;
-  border-radius: 10px;
+  border-radius: 40px;
   font-size: 16px;
   font-weight: 600;
   text-decoration: none;
@@ -247,7 +256,7 @@ button:disabled {
 }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 500px) {
+@media (max-width: 768px) {
   .login-card {
     padding: 30px 20px;
   }
@@ -258,21 +267,41 @@ button:disabled {
     flex-direction: column;
     gap: 10px;
   }
+  .home-container .nav {
+    padding: 12px 20px;
+  }
+  .home-container .hero-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  .home-container .hero-left {
+    max-width: 100%;
+  }
+  .home-container .hero-right {
+    width: 100%;
+  }
+  .home-container .gridCards {
+    max-width: 100%;
+  }
+  .home-container .trustBadges {
+    justify-content: center;
+  }
 }
+
 
 /* ===== THEME VARIABLES ===== */
 :root {
   --bg-primary: #ffffff;
-  --bg-secondary: #ffffff;
+  --bg-secondary: #f7fafc;
   --bg-card: #ffffff;
   --bg-input: #f7fafc;
   --text-primary: #1a202c;
   --text-secondary: #4a5568;
   --border-color: #e2e8f0;
-  --badge-bg: #f0fff4;        
-  --text-primary: #2d3748;    
-  --border-color: #c6f6d5;    
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  --badge-bg: #f0fff4;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --gradient-start: #48bb78;
+  --gradient-end: #2f855a;
 }
 
 [data-theme="dark"] {
@@ -283,10 +312,8 @@ button:disabled {
   --text-primary: #f7fafc;
   --text-secondary: #cbd5e0;
   --border-color: #4a5568;
-  --badge-bg: #2d3748;        
-  --text-primary: #f7fafc;    
-  --border-color: #4a5568;
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  --badge-bg: #2d3748;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* ===== TOAST ANIMATIONS ===== */

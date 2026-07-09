@@ -65,6 +65,13 @@ const AdminDashboard = () => {
   const [officers, setOfficers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Modal State
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -136,6 +143,7 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, []);
 
@@ -202,7 +210,7 @@ const AdminDashboard = () => {
       datasets: [{
         label: 'Complaint Status',
         data: [statusCounts.Pending, statusCounts.Assigned, statusCounts['In Progress'], statusCounts.Resolved],
-        backgroundColor: ['#ecc94b', '#48bb78', '#ed8936', '#48bb78'],
+        backgroundColor: ['#ecc94b', '#48bb78', '#d8955e', '#cad65b'],
         borderColor: '#fff',
         borderWidth: 2,
       }],
@@ -222,6 +230,7 @@ const AdminDashboard = () => {
 
   const barOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     animation: { duration: 1500, easing: 'easeOutQuart' },
     plugins: {
       legend: { 
@@ -248,6 +257,7 @@ const AdminDashboard = () => {
 
   const pieOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     animation: { duration: 1200, easing: 'easeOutQuart' },
     plugins: {
       legend: {
@@ -269,9 +279,15 @@ const AdminDashboard = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        style={styles.container}
+        style={{
+          ...styles.container,
+          padding: isMobile ? '80px 16px 30px' : '90px 24px 30px',
+        }}
       >
-        <motion.h2 variants={fadeInDown} initial="hidden" animate="visible" style={styles.title}>
+        <motion.h2 variants={fadeInDown} initial="hidden" animate="visible" style={{
+          ...styles.title,
+          fontSize: isMobile ? '24px' : '2.2rem',
+        }}>
           👨‍💼 Admin Dashboard
         </motion.h2>
         <motion.p
@@ -279,7 +295,10 @@ const AdminDashboard = () => {
           initial="hidden"
           animate="visible"
           transition={{ delay: 0.15 }}
-          style={styles.subtitle}
+          style={{
+            ...styles.subtitle,
+            fontSize: isMobile ? '14px' : '16px',
+          }}
         >
           Welcome back, {user.name}! Monitor and manage all city complaints.
         </motion.p>
@@ -289,7 +308,11 @@ const AdminDashboard = () => {
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          style={styles.statsGrid}
+          style={{
+            ...styles.statsGrid,
+            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: isMobile ? '12px' : '20px',
+          }}
         >
           {[
             { label: '📋 Total', value: stats.total, color: '#48bb78' },
@@ -301,10 +324,14 @@ const AdminDashboard = () => {
               key={index}
               variants={fadeInUp}
               whileHover={{ scale: 1.03 }}
-              style={{ ...styles.card, borderBottom: `4px solid ${stat.color}` }}
+              style={{
+                ...styles.card,
+                borderBottom: `4px solid ${stat.color}`,
+                padding: isMobile ? '16px 12px' : '20px',
+              }}
             >
-              <h3 style={styles.cardLabel}>{stat.label}</h3>
-              <p style={styles.number}>{stat.value}</p>
+              <h3 style={{ ...styles.cardLabel, fontSize: isMobile ? '13px' : '16px' }}>{stat.label}</h3>
+              <p style={{ ...styles.number, fontSize: isMobile ? '28px' : '32px' }}>{stat.value}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -314,13 +341,25 @@ const AdminDashboard = () => {
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          style={styles.chartsGrid}
+          style={{
+            ...styles.chartsGrid,
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: isMobile ? '16px' : '20px',
+          }}
         >
-          <motion.div variants={fadeInUp} whileHover={{ scale: 1.01 }} style={styles.chartCard}>
-            <Bar data={getCategoryData()} options={barOptions} />
+          <motion.div variants={fadeInUp} whileHover={{ scale: isMobile ? 1 : 1.01 }} style={{
+            ...styles.chartCard,
+            padding: isMobile ? '16px' : '20px',
+            minHeight: isMobile ? '220px' : '300px',
+          }}>
+            <Bar data={getCategoryData()} options={{ ...barOptions, maintainAspectRatio: false }} />
           </motion.div>
-          <motion.div variants={fadeInUp} whileHover={{ scale: 1.01 }} style={styles.chartCard}>
-            <Pie data={getStatusData()} options={pieOptions} />
+          <motion.div variants={fadeInUp} whileHover={{ scale: isMobile ? 1 : 1.01 }} style={{
+            ...styles.chartCard,
+            padding: isMobile ? '16px' : '20px',
+            minHeight: isMobile ? '220px' : '300px',
+          }}>
+            <Pie data={getStatusData()} options={{ ...pieOptions, maintainAspectRatio: false }} />
           </motion.div>
         </motion.div>
 
@@ -329,21 +368,40 @@ const AdminDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          style={styles.searchContainer}
+          style={{
+            ...styles.searchContainer,
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '10px' : '10px',
+          }}
         >
           <input
             type="text"
             placeholder="🔍 Search by title or category..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
+            style={{
+              ...styles.searchInput,
+              width: isMobile ? '100%' : 'auto',
+              padding: isMobile ? '10px 14px' : '12px 16px',
+              fontSize: isMobile ? '14px' : '14px',
+            }}
           />
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setSearchTerm('')} style={styles.clearBtn}>
-            Clear
-          </motion.button>
-          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={exportToCSV} style={styles.exportBtn}>
-            📥 Export CSV
-          </motion.button>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setSearchTerm('')} style={{
+              ...styles.clearBtn,
+              padding: isMobile ? '10px 16px' : '10px 20px',
+              fontSize: isMobile ? '13px' : '14px',
+            }}>
+              Clear
+            </motion.button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={exportToCSV} style={{
+              ...styles.exportBtn,
+              padding: isMobile ? '10px 16px' : '10px 20px',
+              fontSize: isMobile ? '13px' : '14px',
+            }}>
+              📥 Export CSV
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* All Complaints Table (Non-Resolved) */}
@@ -351,7 +409,10 @@ const AdminDashboard = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          style={styles.sectionTitle}
+          style={{
+            ...styles.sectionTitle,
+            fontSize: isMobile ? '18px' : '20px',
+          }}
         >
           📌 All Complaints ({activeComplaints.length})
         </motion.h3>
@@ -365,65 +426,86 @@ const AdminDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
-            style={styles.tableWrapper}
+            style={{
+              ...styles.tableWrapper,
+              padding: isMobile ? '12px' : '20px',
+            }}
           >
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Title</th>
-                  <th style={styles.th}>Category</th>
-                  <th style={styles.th}>Status</th>
-                  <th style={styles.th}>Officer</th>
-                  <th style={styles.th}>Date</th>
-                  <th style={styles.th}>Actions</th>
-                </tr>
-              </thead>
-              <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
-                {filteredComplaints.filter(c => c.status !== 'Resolved').map((complaint) => (
-                  <motion.tr
-                    key={complaint.id}
-                    variants={tableRowVariants}
-                    whileHover={{ backgroundColor: 'var(--hover-bg, rgba(72, 187, 120, 0.05))' }}
-                    style={styles.tr}
-                  >
-                    <td style={styles.td}>{complaint.title}</td>
-                    <td style={styles.td}>{complaint.category}</td>
-                    <td style={styles.td}>
-                      <span style={{
-                        ...styles.statusBadge,
-                        background: complaint.status === 'Resolved' ? '#c6f6d5' : '#fefcbf',
-                        color: complaint.status === 'Resolved' ? '#276749' : '#975a16',
-                      }}>
-                        {complaint.status}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => openAssignModal(complaint.id, complaint.officerId)}
-                        style={styles.assignButton}
-                      >
-                        <span>{getOfficerName(complaint.officerId)}</span>
-                        <span style={{ marginLeft: '8px', fontSize: '14px' }}>▼</span>
-                      </motion.button>
-                    </td>
-                    <td style={styles.td}>{new Date(complaint.createdAt).toLocaleDateString()}</td>
-                    <td style={styles.td}>
-                      <motion.button
-                        whileHover={{ scale: 1.1, backgroundColor: '#e53e3e' }}
-                        whileTap={{ scale: 0.9 }}
-                        style={styles.deleteBtn}
-                        onClick={() => handleDelete(complaint.id)}
-                        disabled={loading}
-                      >
-                        🗑️
-                      </motion.button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </motion.tbody>
-            </table>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{
+                ...styles.table,
+                fontSize: isMobile ? '13px' : '14px',
+              }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Title</th>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Category</th>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Status</th>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Officer</th>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Date</th>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
+                  {filteredComplaints.filter(c => c.status !== 'Resolved').map((complaint) => (
+                    <motion.tr
+                      key={complaint.id}
+                      variants={tableRowVariants}
+                      whileHover={{ backgroundColor: 'var(--hover-bg, rgba(72, 187, 120, 0.05))' }}
+                      style={styles.tr}
+                    >
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>{complaint.title}</td>
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>{complaint.category}</td>
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>
+                        <span style={{
+                          ...styles.statusBadge,
+                          background: complaint.status === 'Resolved' ? '#c6f6d5' : '#fefcbf',
+                          color: complaint.status === 'Resolved' ? '#276749' : '#975a16',
+                          fontSize: isMobile ? '11px' : '12px',
+                          padding: isMobile ? '3px 10px' : '4px 12px',
+                        }}>
+                          {complaint.status}
+                        </span>
+                      </td>
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => openAssignModal(complaint.id, complaint.officerId)}
+                          style={{
+                            ...styles.assignButton,
+                            fontSize: isMobile ? '12px' : '13px',
+                            padding: isMobile ? '6px 12px' : '8px 14px',
+                            minWidth: isMobile ? '100px' : '150px',
+                          }}
+                        >
+                          <span>{getOfficerName(complaint.officerId)}</span>
+                          <span style={{ marginLeft: '6px', fontSize: '14px' }}>▼</span>
+                        </motion.button>
+                      </td>
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>
+                        {new Date(complaint.createdAt).toLocaleDateString()}
+                      </td>
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>
+                        <motion.button
+                          whileHover={{ scale: 1.1, backgroundColor: '#e53e3e' }}
+                          whileTap={{ scale: 0.9 }}
+                          style={{
+                            ...styles.deleteBtn,
+                            padding: isMobile ? '4px 10px' : '6px 12px',
+                            fontSize: isMobile ? '14px' : '16px',
+                          }}
+                          onClick={() => handleDelete(complaint.id)}
+                          disabled={loading}
+                        >
+                          🗑️
+                        </motion.button>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </motion.tbody>
+              </table>
+            </div>
           </motion.div>
         )}
 
@@ -432,7 +514,11 @@ const AdminDashboard = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          style={styles.sectionTitle}
+          style={{
+            ...styles.sectionTitle,
+            fontSize: isMobile ? '18px' : '20px',
+            marginTop: '30px',
+          }}
         >
           ✅ Resolved Complaints ({resolvedComplaints.length})
         </motion.h3>
@@ -446,32 +532,42 @@ const AdminDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 }}
-            style={styles.tableWrapper}
+            style={{
+              ...styles.tableWrapper,
+              padding: isMobile ? '12px' : '20px',
+            }}
           >
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Title</th>
-                  <th style={styles.th}>Category</th>
-                  <th style={styles.th}>Officer</th>
-                  <th style={styles.th}>Date</th>
-                </tr>
-              </thead>
-              <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
-                {resolvedComplaints.map((complaint) => (
-                  <motion.tr
-                    key={complaint.id}
-                    variants={tableRowVariants}
-                    style={styles.tr}
-                  >
-                    <td style={styles.td}>{complaint.title}</td>
-                    <td style={styles.td}>{complaint.category}</td>
-                    <td style={styles.td}>{getOfficerName(complaint.officerId)}</td>
-                    <td style={styles.td}>{new Date(complaint.createdAt).toLocaleDateString()}</td>
-                  </motion.tr>
-                ))}
-              </motion.tbody>
-            </table>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{
+                ...styles.table,
+                fontSize: isMobile ? '13px' : '14px',
+              }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Title</th>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Category</th>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Officer</th>
+                    <th style={{ ...styles.th, fontSize: isMobile ? '12px' : '14px' }}>Date</th>
+                  </tr>
+                </thead>
+                <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
+                  {resolvedComplaints.map((complaint) => (
+                    <motion.tr
+                      key={complaint.id}
+                      variants={tableRowVariants}
+                      style={styles.tr}
+                    >
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>{complaint.title}</td>
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>{complaint.category}</td>
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>{getOfficerName(complaint.officerId)}</td>
+                      <td style={{ ...styles.td, fontSize: isMobile ? '12px' : '14px' }}>
+                        {new Date(complaint.createdAt).toLocaleDateString()}
+                      </td>
+                    </motion.tr>
+                  ))}
+                </motion.tbody>
+              </table>
+            </div>
           </motion.div>
         )}
 
@@ -484,17 +580,27 @@ const AdminDashboard = () => {
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                style={styles.modalContent}
+                style={{
+                  ...styles.modalContent,
+                  width: isMobile ? '90%' : '380px',
+                  padding: isMobile ? '24px 20px' : '28px 32px',
+                }}
               >
-                <h3 style={{ color: 'var(--text-primary, #1a202c)', marginBottom: '4px' }}>Assign Officer</h3>
-                <p style={{ color: 'var(--text-secondary, #718096)', marginBottom: '20px' }}>
+                <h3 style={{ color: 'var(--text-primary, #1a202c)', marginBottom: '4px', fontSize: isMobile ? '20px' : '24px' }}>
+                  Assign Officer
+                </h3>
+                <p style={{ color: 'var(--text-secondary, #718096)', marginBottom: '20px', fontSize: isMobile ? '14px' : '16px' }}>
                   Select an officer for this complaint
                 </p>
 
                 <select
                   value={selectedOfficerId}
                   onChange={(e) => setSelectedOfficerId(e.target.value)}
-                  style={styles.modalSelect}
+                  style={{
+                    ...styles.modalSelect,
+                    padding: isMobile ? '10px 14px' : '12px',
+                    fontSize: isMobile ? '14px' : '15px',
+                  }}
                 >
                   <option value="">Select Officer...</option>
                   {officers.map(o => (
@@ -502,12 +608,20 @@ const AdminDashboard = () => {
                   ))}
                 </select>
 
-                <div style={styles.modalActions}>
+                <div style={{
+                  ...styles.modalActions,
+                  flexDirection: isMobile ? 'column' : 'row',
+                  gap: isMobile ? '10px' : '12px',
+                }}>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowAssignModal(false)}
-                    style={styles.cancelBtn}
+                    style={{
+                      ...styles.cancelBtn,
+                      width: isMobile ? '100%' : 'auto',
+                      padding: isMobile ? '12px' : '10px 24px',
+                    }}
                   >
                     Cancel
                   </motion.button>
@@ -515,7 +629,11 @@ const AdminDashboard = () => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleAssignFromModal}
-                    style={styles.confirmBtn}
+                    style={{
+                      ...styles.confirmBtn,
+                      width: isMobile ? '100%' : 'auto',
+                      padding: isMobile ? '12px' : '10px 24px',
+                    }}
                   >
                     Assign Officer
                   </motion.button>
@@ -533,8 +651,8 @@ const AdminDashboard = () => {
 const styles = {
   container: {
     maxWidth: '1200px',
-    margin: '90px auto 30px',
-    padding: '0 20px',
+    margin: '0 auto',
+    padding: '90px 24px 30px',
   },
   title: {
     fontSize: '2.2rem',
@@ -560,6 +678,7 @@ const styles = {
   },
   cardLabel: {
     color: 'var(--text-primary, #1a202c)',
+    marginBottom: '4px',
   },
   number: {
     fontSize: '32px',
@@ -577,12 +696,14 @@ const styles = {
     padding: '20px',
     borderRadius: '12px',
     boxShadow: 'var(--shadow, 0 2px 10px rgba(0,0,0,0.05))',
+    minHeight: '300px',
   },
   searchContainer: {
     display: 'flex',
     gap: '10px',
     marginBottom: '15px',
     flexWrap: 'wrap',
+    alignItems: 'center',
   },
   searchInput: {
     flex: 1,
@@ -614,13 +735,14 @@ const styles = {
   sectionTitle: {
     marginBottom: '15px',
     color: 'var(--text-primary, #1a202c)',
+    marginTop: '20px',
   },
   tableWrapper: {
     background: 'var(--bg-card, #ffffff)',
     borderRadius: '12px',
     padding: '20px',
     boxShadow: 'var(--shadow, 0 2px 10px rgba(0,0,0,0.05))',
-    overflowX: 'auto',
+    marginBottom: '20px',
   },
   table: {
     width: '100%',
@@ -679,7 +801,6 @@ const styles = {
     borderRadius: '16px',
     color: 'var(--text-secondary, #718096)',
   },
-
   modalOverlay: {
     position: 'fixed',
     top: 0,
@@ -691,6 +812,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+    padding: '20px',
   },
   modalContent: {
     background: 'var(--bg-card, #ffffff)',

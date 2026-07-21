@@ -6,6 +6,7 @@ const CameraPage = () => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const streamRef = useRef(null);
   const [stream, setStream] = useState(null);
   const [capturedImage, setCapturedImage] = useState(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -24,6 +25,11 @@ const CameraPage = () => {
   const startCamera = useCallback(async () => {
     try {
       setError('');
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facingMode,
@@ -33,7 +39,9 @@ const CameraPage = () => {
         audio: false,
       });
 
+      streamRef.current = mediaStream;
       setStream(mediaStream);
+
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         videoRef.current.onloadedmetadata = () => {
@@ -55,12 +63,13 @@ const CameraPage = () => {
 
   // ===== STOP CAMERA =====
   const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
       setStream(null);
     }
     setIsCameraReady(false);
-  }, [stream]);
+  }, []);
 
   // ===== CAPTURE PHOTO =====
   const capturePhoto = useCallback(async () => {
@@ -91,23 +100,21 @@ const CameraPage = () => {
   }, [isCameraReady, facingMode, navigate]);
 
   // ===== FLIP CAMERA =====
-  const flipCamera = () => {
+  const flipCamera = useCallback(() => {
     const newMode = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(newMode);
     stopCamera();
-    setTimeout(() => startCamera(), 300);
-  };
+  }, [facingMode, stopCamera]);
 
   // ===== USE PHOTO =====
-  const usePhoto = () => {
+  const usePhoto = useCallback(() => {
     navigate('/report-issue', { state: { capturedImage } });
-  };
+  }, [capturedImage, navigate]);
 
   // ===== RETAKE PHOTO =====
-  const retakePhoto = () => {
+  const retakePhoto = useCallback(() => {
     setCapturedImage(null);
-    startCamera();
-  };
+  }, []);
 
   // ===== GO BACK =====
   const goBack = useCallback(() => {
@@ -121,7 +128,8 @@ const CameraPage = () => {
     return () => {
       stopCamera();
     };
-  }, [startCamera, stopCamera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [facingMode]);
 
   // ===== KEYBOARD SHORTCUTS =====
   useEffect(() => {
@@ -412,19 +420,22 @@ const styles = {
     transition: 'background 0.3s',
   },
   viewfinder: {
-    flex: 1,
-    width: '100%',
-    maxWidth: '500px',
-    borderRadius: '24px',
+    flex: 1,                           // fills remaining space
+    width: '100%',                     // full width
+    maxWidth: '100%',                  // no max width constraint
+    borderRadius: '16px',
     overflow: 'hidden',
     position: 'relative',
     background: '#1a1a1a',
-    aspectRatio: '4/3',
+    // No fixed aspect ratio – let it fill freely
   },
   video: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    objectFit: 'cover',                // covers container, crops to fill
     background: '#111',
   },
   loadingOverlay: {

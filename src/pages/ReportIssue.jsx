@@ -18,34 +18,64 @@ const ReportIssue = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    location: '',
-    latitude: '',
-    longitude: '',
+  // ===== FORM DATA - PERSISTED ACROSS NAVIGATION =====
+  const [formData, setFormData] = useState(() => {
+    // Try to restore from sessionStorage when returning from camera
+    const saved = sessionStorage.getItem('reportFormData');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return { title: '', description: '', location: '', latitude: '', longitude: '' };
+      }
+    }
+    return { title: '', description: '', location: '', latitude: '', longitude: '' };
   });
 
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [image, setImage] = useState(() => {
+    const saved = sessionStorage.getItem('reportImage');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [imagePreview, setImagePreview] = useState(() => {
+    const saved = sessionStorage.getItem('reportImagePreview');
+    return saved || null;
+  });
+
+  // ===== SAVE FORM DATA TO SESSIONSTORAGE =====
+  const saveFormState = () => {
+    sessionStorage.setItem('reportFormData', JSON.stringify(formData));
+    if (image) sessionStorage.setItem('reportImage', JSON.stringify(image));
+    if (imagePreview) sessionStorage.setItem('reportImagePreview', imagePreview);
+  };
+
+  // ===== CLEAR SESSIONSTORAGE ON SUCCESSFUL SUBMIT =====
+  const clearFormState = () => {
+    sessionStorage.removeItem('reportFormData');
+    sessionStorage.removeItem('reportImage');
+    sessionStorage.removeItem('reportImagePreview');
+  };
 
   // Get image from camera
   useEffect(() => {
     if (location.state?.capturedImage) {
       const file = location.state.capturedImage;
       setImage(file);
-      setImagePreview(URL.createObjectURL(file));
+      const preview = URL.createObjectURL(file);
+      setImagePreview(preview);
+      sessionStorage.setItem('reportImage', JSON.stringify(file));
+      sessionStorage.setItem('reportImagePreview', preview);
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const updated = { ...formData, [e.target.name]: e.target.value };
+    setFormData(updated);
+    sessionStorage.setItem('reportFormData', JSON.stringify(updated));
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    setImage(file);
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
@@ -61,13 +91,20 @@ const ReportIssue = () => {
     setImage(file);
     const previewURL = URL.createObjectURL(file);
     setImagePreview(previewURL);
+    sessionStorage.setItem('reportImage', JSON.stringify(file));
+    sessionStorage.setItem('reportImagePreview', previewURL);
   };
 
-  const handleCameraOpen = () => navigate('/camera');
+  const handleCameraOpen = () => {
+    saveFormState();
+    navigate('/camera');
+  };
 
   const handleRemoveImage = () => {
     setImage(null);
     setImagePreview(null);
+    sessionStorage.removeItem('reportImage');
+    sessionStorage.removeItem('reportImagePreview');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -81,12 +118,14 @@ const ReportIssue = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setFormData(prev => ({
-          ...prev,
+        const updated = {
+          ...formData,
           latitude: latitude.toString(),
           longitude: longitude.toString(),
           location: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-        }));
+        };
+        setFormData(updated);
+        sessionStorage.setItem('reportFormData', JSON.stringify(updated));
         setLoading(false);
         setError('');
         alert('📍 GPS Location captured successfully!');
@@ -123,7 +162,7 @@ const ReportIssue = () => {
       uploadData.append("image", image);
 
       const aiResponse = await fetch(
-        "http://10.42.80.69:8000/predict",
+        "http://127.0.0.1:8000/predict",
         {
           method: "POST",
           body: uploadData,
@@ -151,7 +190,7 @@ const ReportIssue = () => {
       };
 
       addComplaint(newComplaint);
-
+      clearFormState();
       alert("Complaint Submitted Successfully!");
       navigate("/citizen-dashboard");
     } catch (err) {
@@ -173,19 +212,18 @@ const ReportIssue = () => {
         margin: isMobile ? '80px auto 20px' : '30px auto',
         padding: isMobile ? '0 16px' : '0 20px',
       }}>
-        {/* No extra <br> – use proper margin */}
         <div style={styles.headerSection}>
           <h2 style={{
             ...styles.heading,
-            fontSize: isMobile ? '24px' : '32px',
+            fontSize: isMobile ? '22px' : '32px',
             marginBottom: isMobile ? '4px' : '8px',
           }}>
             Report a Civic Issue
           </h2>
           <p style={{
             ...styles.subtitle,
-            fontSize: isMobile ? '14px' : '16px',
-            marginBottom: isMobile ? '20px' : '30px',
+            fontSize: isMobile ? '13px' : '16px',
+            marginBottom: isMobile ? '16px' : '30px',
           }}>
             Help improve your city • GPS is mandatory
           </p>
@@ -195,17 +233,18 @@ const ReportIssue = () => {
 
         <form onSubmit={handleSubmit} style={{
           ...styles.form,
-          padding: isMobile ? '20px 16px' : '30px',
+          padding: isMobile ? '16px' : '30px',
           borderRadius: isMobile ? '14px' : '16px',
         }}>
           <div style={styles.formGroup}>
             <label style={{
               ...styles.label,
-              fontSize: isMobile ? '14px' : '15px',
+              fontSize: isMobile ? '13px' : '15px',
             }}>Title *</label>
             <input
               type="text"
               name="title"
+              placeholder="e.g. Pothole on Main Street"
               value={formData.title}
               onChange={handleChange}
               style={{
@@ -221,10 +260,11 @@ const ReportIssue = () => {
           <div style={styles.formGroup}>
             <label style={{
               ...styles.label,
-              fontSize: isMobile ? '14px' : '15px',
+              fontSize: isMobile ? '13px' : '15px',
             }}>Description *</label>
             <textarea
               name="description"
+              placeholder="Provide details about the issue..."
               value={formData.description}
               onChange={handleChange}
               style={{
@@ -242,7 +282,7 @@ const ReportIssue = () => {
           <div style={styles.formGroup}>
             <label style={{
               ...styles.label,
-              fontSize: isMobile ? '14px' : '15px',
+              fontSize: isMobile ? '13px' : '15px',
             }}>Image * (Photo of Issue)</label>
             <div style={{
               ...styles.imageButtonGroup,
@@ -255,7 +295,7 @@ const ReportIssue = () => {
                 style={{
                   ...styles.cameraBtn,
                   padding: isMobile ? '10px 16px' : '10px 20px',
-                  fontSize: isMobile ? '14px' : '15px',
+                  fontSize: isMobile ? '13px' : '15px',
                   width: isMobile ? '100%' : 'auto',
                   borderRadius: isMobile ? '10px' : '12px',
                 }}
@@ -268,7 +308,7 @@ const ReportIssue = () => {
                 style={{
                   ...styles.uploadBtn,
                   padding: isMobile ? '10px 16px' : '10px 20px',
-                  fontSize: isMobile ? '14px' : '15px',
+                  fontSize: isMobile ? '13px' : '15px',
                   width: isMobile ? '100%' : 'auto',
                   borderRadius: isMobile ? '10px' : '12px',
                 }}
@@ -285,25 +325,35 @@ const ReportIssue = () => {
             </div>
 
             {imagePreview && (
-              <div style={styles.previewContainer}>
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  style={{
-                    ...styles.previewImage,
-                    maxWidth: isMobile ? '150px' : '200px',
-                    maxHeight: isMobile ? '150px' : '200px',
-                    borderRadius: isMobile ? '10px' : '12px',
-                  }}
-                />
+              <div style={{
+                ...styles.previewContainer,
+                width: isMobile ? '100%' : 'auto',
+                maxWidth: isMobile ? '100%' : '220px',
+              }}>
+                <div style={{
+                  ...styles.previewWrapper,
+                  width: isMobile ? '100%' : '220px',
+                  height: isMobile ? '180px' : '180px',
+                }}>
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      borderRadius: '10px',
+                    }}
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleRemoveImage}
                   style={{
                     ...styles.removeImageBtn,
-                    fontSize: isMobile ? '24px' : '28px',
-                    top: isMobile ? '4px' : '8px',
-                    right: isMobile ? '4px' : '8px',
+                    fontSize: isMobile ? '26px' : '28px',
+                    top: isMobile ? '-6px' : '-8px',
+                    right: isMobile ? '-6px' : '-8px',
                   }}
                 >
                   <IoCloseCircle />
@@ -315,7 +365,7 @@ const ReportIssue = () => {
           <div style={styles.formGroup}>
             <label style={{
               ...styles.label,
-              fontSize: isMobile ? '14px' : '15px',
+              fontSize: isMobile ? '13px' : '15px',
             }}>GPS Location</label>
             <div style={{
               ...styles.locationRow,
@@ -342,7 +392,7 @@ const ReportIssue = () => {
                 style={{
                   ...styles.gpsBtn,
                   padding: isMobile ? '10px 16px' : '12px 20px',
-                  fontSize: isMobile ? '14px' : '15px',
+                  fontSize: isMobile ? '13px' : '15px',
                   borderRadius: isMobile ? '10px' : '12px',
                   width: isMobile ? '100%' : 'auto',
                 }}
@@ -354,8 +404,8 @@ const ReportIssue = () => {
             {formData.latitude && (
               <p style={{
                 ...styles.coords,
-                fontSize: isMobile ? '12px' : '13px',
-                marginTop: isMobile ? '6px' : '8px',
+                fontSize: isMobile ? '11px' : '13px',
+                marginTop: isMobile ? '4px' : '8px',
               }}>
                 Lat: {formData.latitude} | Lon: {formData.longitude}
               </p>
@@ -367,7 +417,7 @@ const ReportIssue = () => {
             style={{
               ...styles.submitBtn,
               padding: isMobile ? '12px' : '14px',
-              fontSize: isMobile ? '15px' : '16px',
+              fontSize: isMobile ? '14px' : '16px',
               borderRadius: isMobile ? '12px' : '14px',
             }}
             disabled={loading}
@@ -380,7 +430,7 @@ const ReportIssue = () => {
   );
 };
 
-// ===== STYLES – Responsive =====
+// ===== STYLES =====
 const styles = {
   container: {
     maxWidth: '700px',
@@ -470,17 +520,23 @@ const styles = {
     marginTop: '10px',
     position: 'relative',
     display: 'inline-block',
+    width: '100%',
   },
-  previewImage: {
-    maxWidth: '200px',
-    maxHeight: '200px',
-    borderRadius: '12px',
+  previewWrapper: {
+    width: '220px',
+    height: '180px',
+    background: '#f7fafc',
+    borderRadius: '10px',
     border: '2px solid var(--border-color, #e2e8f0)',
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   removeImageBtn: {
     position: 'absolute',
-    top: '8px',
-    right: '8px',
+    top: '-8px',
+    right: '-8px',
     background: 'transparent',
     border: 'none',
     color: '#ef4444',
@@ -490,6 +546,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
   },
   locationRow: {
     display: 'flex',

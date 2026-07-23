@@ -116,7 +116,7 @@ const Home = () => {
               transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
               style={{
                 ...styles.heroTitle,
-                fontSize: isMobile ? '32px' : '52px',
+                fontSize: isMobile ? '28px' : '52px',
               }}
             >
               Make Your City
@@ -128,27 +128,40 @@ const Home = () => {
               maxWidth: isMobile ? '100%' : '480px',
               marginLeft: isMobile ? 'auto' : '0',
               marginRight: isMobile ? 'auto' : '0',
+              fontSize: isMobile ? '15px' : '18px',
             }}>
               Report civic issues, track progress, and celebrate solutions – all in one smart platform.
             </p>
             <div style={{
               ...styles.heroButtons,
               justifyContent: isMobile ? 'center' : 'flex-start',
+              gap: isMobile ? '12px' : '14px',
             }}>
-              <Link to="/register">
+              <Link to="/register" style={{ width: isMobile ? '100%' : 'auto' }}>
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 12px 30px rgba(72,187,120,0.4)' }}
                   whileTap={{ scale: 0.95 }}
-                  style={styles.heroBtn}
+                  style={{
+                    ...styles.heroBtn,
+                    width: isMobile ? '100%' : 'auto',
+                    padding: isMobile ? '12px 20px' : '14px 36px',
+                    fontSize: isMobile ? '15px' : '17px',
+                  }}
                 >
                   Start Reporting →
                 </motion.button>
               </Link>
-              <Link to="/login">
+              <Link to="/login" style={{ width: isMobile ? '100%' : 'auto' }}>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  style={{ ...styles.heroBtn, ...styles.heroBtnOutline }}
+                  style={{
+                    ...styles.heroBtn,
+                    ...styles.heroBtnOutline,
+                    width: isMobile ? '100%' : 'auto',
+                    padding: isMobile ? '12px 20px' : '14px 36px',
+                    fontSize: isMobile ? '15px' : '17px',
+                  }}
                 >
                   Sign In
                 </motion.button>
@@ -157,6 +170,7 @@ const Home = () => {
             <div style={{
               ...styles.trustBadges,
               justifyContent: isMobile ? 'center' : 'flex-start',
+              gap: isMobile ? '15px' : '25px',
             }}>
               <div style={styles.badge}>
                 <span style={styles.badgeIcon}>⏱️</span>
@@ -212,9 +226,9 @@ const Home = () => {
                     e.currentTarget.style.borderColor = 'var(--border-color, #e2e8f0)';
                   }}
                 >
-                  <div style={{ ...styles.gridCardIcon, fontSize: isMobile ? '28px' : '32px' }}>{item.icon}</div>
-                  <h4 style={{ ...styles.gridCardTitle, fontSize: isMobile ? '14px' : '15px' }}>{item.label}</h4>
-                  <p style={{ ...styles.gridCardDesc, fontSize: isMobile ? '11px' : '12px' }}>{item.desc}</p>
+                  <div style={{ ...styles.gridCardIcon, fontSize: isMobile ? '26px' : '32px' }}>{item.icon}</div>
+                  <h4 style={{ ...styles.gridCardTitle, fontSize: isMobile ? '13px' : '15px' }}>{item.label}</h4>
+                  <p style={{ ...styles.gridCardDesc, fontSize: isMobile ? '10px' : '12px' }}>{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -226,8 +240,8 @@ const Home = () => {
       <section id="about" style={{ ...styles.section, background: 'var(--bg-primary)' }}>
         <div style={styles.innerContainer}>
           <div style={styles.sectionHeader}>
-            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? '28px' : '36px' }}>About CivicLens</h2>
-            <p style={{ ...styles.sectionSubtitle, fontSize: isMobile ? '16px' : '18px' }}>Empowering citizens, connecting with authorities, building smarter cities.</p>
+            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? '26px' : '36px' }}>About CivicLens</h2>
+            <p style={{ ...styles.sectionSubtitle, fontSize: isMobile ? '14px' : '18px' }}>Empowering citizens, connecting with authorities, building smarter cities.</p>
             <div style={styles.divider} />
           </div>
           <motion.div
@@ -237,7 +251,7 @@ const Home = () => {
             variants={staggerContainer}
             style={{
               ...styles.featuresGrid,
-              gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fit, minmax(260px, 1fr))',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))',
               gap: isMobile ? '16px' : '30px',
             }}
           >
@@ -260,8 +274,8 @@ const Home = () => {
                   e.currentTarget.style.borderColor = 'var(--border-color, #e2e8f0)';
                 }}
               >
-                <div style={{ ...styles.featureIcon, fontSize: isMobile ? '32px' : '40px' }}>{feature.icon}</div>
-                <h3 style={{ ...styles.featureTitle, fontSize: isMobile ? '17px' : '20px' }}>{feature.title}</h3>
+                <div style={{ ...styles.featureIcon, fontSize: isMobile ? '30px' : '40px' }}>{feature.icon}</div>
+                <h3 style={{ ...styles.featureTitle, fontSize: isMobile ? '16px' : '20px' }}>{feature.title}</h3>
                 <p style={{ ...styles.featureDesc, fontSize: isMobile ? '13px' : '16px' }}>{feature.desc}</p>
               </motion.div>
             ))}
@@ -273,8 +287,8 @@ const Home = () => {
       <section id="how-it-works" style={{ ...styles.section, ...styles.greyBg }}>
         <div style={styles.innerContainer}>
           <div style={styles.sectionHeader}>
-            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? '28px' : '36px' }}>How It Works</h2>
-            <p style={{ ...styles.sectionSubtitle, fontSize: isMobile ? '16px' : '18px' }}>Three simple steps to report and resolve civic issues in your city.</p>
+            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? '26px' : '36px' }}>How It Works</h2>
+            <p style={{ ...styles.sectionSubtitle, fontSize: isMobile ? '14px' : '18px' }}>Three simple steps to report and resolve civic issues in your city.</p>
             <div style={styles.divider} />
           </div>
           <motion.div
@@ -311,8 +325,8 @@ const Home = () => {
       <section id="help" style={{ ...styles.section, ...styles.greyBg }}>
         <div style={styles.innerContainer}>
           <div style={styles.sectionHeader}>
-            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? '28px' : '36px' }}>Frequently Asked Questions</h2>
-            <p style={{ ...styles.sectionSubtitle, fontSize: isMobile ? '16px' : '18px' }}>Find quick answers to common questions about CivicLens.</p>
+            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? '26px' : '36px' }}>Frequently Asked Questions</h2>
+            <p style={{ ...styles.sectionSubtitle, fontSize: isMobile ? '14px' : '18px' }}>Find quick answers to common questions about CivicLens.</p>
             <div style={styles.divider} />
           </div>
           <motion.div
@@ -325,7 +339,7 @@ const Home = () => {
             {faqs.map((faq, index) => (
               <motion.div key={index} variants={fadeInUp} style={styles.faqItem}>
                 <div style={styles.faqQuestion} onClick={() => toggleFaq(index)}>
-                  <span style={{ ...styles.faqQuestionText, fontSize: isMobile ? '15px' : '16px' }}>{faq.question}</span>
+                  <span style={{ ...styles.faqQuestionText, fontSize: isMobile ? '14px' : '16px' }}>{faq.question}</span>
                   <span style={styles.faqIcon}>{faqOpen === index ? '−' : '+'}</span>
                 </div>
                 <div style={{ ...styles.faqAnswer, maxHeight: faqOpen === index ? '200px' : '0' }}>
@@ -784,6 +798,5 @@ const styles = {
   },
   footerBottomText: { fontSize: '14px', color: '#718096' },
 };
-
 
 export default Home;

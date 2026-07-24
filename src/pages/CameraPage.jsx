@@ -26,7 +26,8 @@ const CameraPage = () => {
       setError('');
       const constraints = {
         video: {
-          facingMode: facingMode,
+          facingMode: { ideal: facingMode },  // more flexible than string
+          zoom: 1,                            // fixes 0.5x on some devices
           width: { ideal: isDesktop ? 1920 : 1280 },
           height: { ideal: isDesktop ? 1080 : 720 },
         },
@@ -75,11 +76,7 @@ const CameraPage = () => {
     canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     
-    if (facingMode === 'user') {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
-    
+    // No mirroring – draw exactly as the camera sees it
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     // Convert to File object
@@ -188,10 +185,7 @@ const CameraPage = () => {
           <>
             <video
               ref={videoRef}
-              style={{
-                ...styles.video,
-                transform: facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)',
-              }}
+              style={styles.video} // No transform – natural orientation
               playsInline
               autoPlay
               muted
@@ -296,7 +290,7 @@ const CameraPage = () => {
   );
 };
 
-// ===== STYLES (same as before) =====
+// ===== STYLES (unchanged) =====
 const styles = {
   container: {
     position: 'fixed',

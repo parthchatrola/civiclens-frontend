@@ -18,46 +18,86 @@ const ReportIssue = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ===== FORM DATA - PERSISTED ACROSS NAVIGATION =====
+  // ===== Get current user ID (for sessionStorage key) =====
+  const getCurrentUserId = () => {
+    const user = JSON.parse(localStorage.getItem('civiclens_current_user'));
+    return user?.id || null;
+  };
+
+  // ===== FORM DATA – load from sessionStorage ONLY if same user =====
   const [formData, setFormData] = useState(() => {
-    const saved = sessionStorage.getItem('reportFormData');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return { title: '', description: '', location: '', latitude: '', longitude: '' };
+    const currentUserId = getCurrentUserId();
+    const savedUserId = sessionStorage.getItem('reportUserId');
+    if (currentUserId && savedUserId === currentUserId) {
+      const saved = sessionStorage.getItem('reportFormData');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // ignore
+        }
       }
     }
     return { title: '', description: '', location: '', latitude: '', longitude: '' };
   });
 
   const [image, setImage] = useState(() => {
-    const saved = sessionStorage.getItem('reportImage');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [imagePreview, setImagePreview] = useState(() => {
-    const saved = sessionStorage.getItem('reportImagePreview');
-    return saved || null;
+    const currentUserId = getCurrentUserId();
+    const savedUserId = sessionStorage.getItem('reportUserId');
+    if (currentUserId && savedUserId === currentUserId) {
+      const saved = sessionStorage.getItem('reportImage');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return null;
   });
 
+  const [imagePreview, setImagePreview] = useState(() => {
+    const currentUserId = getCurrentUserId();
+    const savedUserId = sessionStorage.getItem('reportUserId');
+    if (currentUserId && savedUserId === currentUserId) {
+      const saved = sessionStorage.getItem('reportImagePreview');
+      if (saved) {
+        return saved;
+      }
+    }
+    return null;
+  });
+
+  // ===== SAVE FORM DATA (with user ID) =====
   const saveFormState = () => {
+    const currentUserId = getCurrentUserId();
+    if (currentUserId) {
+      sessionStorage.setItem('reportUserId', currentUserId);
+    }
     sessionStorage.setItem('reportFormData', JSON.stringify(formData));
     if (image) sessionStorage.setItem('reportImage', JSON.stringify(image));
     if (imagePreview) sessionStorage.setItem('reportImagePreview', imagePreview);
   };
 
+  // ===== CLEAR SESSIONSTORAGE =====
   const clearFormState = () => {
     sessionStorage.removeItem('reportFormData');
     sessionStorage.removeItem('reportImage');
     sessionStorage.removeItem('reportImagePreview');
+    sessionStorage.removeItem('reportUserId');
   };
 
+  // Get image from camera (no change)
   useEffect(() => {
     if (location.state?.capturedImage) {
       const file = location.state.capturedImage;
       setImage(file);
       const preview = URL.createObjectURL(file);
       setImagePreview(preview);
+      // Save with current user
+      const currentUserId = getCurrentUserId();
+      if (currentUserId) sessionStorage.setItem('reportUserId', currentUserId);
       sessionStorage.setItem('reportImage', JSON.stringify(file));
       sessionStorage.setItem('reportImagePreview', preview);
       window.history.replaceState({}, document.title);
@@ -87,6 +127,9 @@ const ReportIssue = () => {
     setImage(file);
     const previewURL = URL.createObjectURL(file);
     setImagePreview(previewURL);
+    // Save with current user
+    const currentUserId = getCurrentUserId();
+    if (currentUserId) sessionStorage.setItem('reportUserId', currentUserId);
     sessionStorage.setItem('reportImage', JSON.stringify(file));
     sessionStorage.setItem('reportImagePreview', previewURL);
   };
@@ -320,7 +363,6 @@ const ReportIssue = () => {
               />
             </div>
 
-            {/* ===== UPDATED PREVIEW SECTION (mobile only) ===== */}
             {imagePreview && (
               <div style={{
                 ...styles.previewContainer,
@@ -357,7 +399,6 @@ const ReportIssue = () => {
                 </button>
               </div>
             )}
-            {/* ==================================== */}
           </div>
 
           <div style={styles.formGroup}>

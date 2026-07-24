@@ -20,7 +20,6 @@ const ReportIssue = () => {
 
   // ===== FORM DATA - PERSISTED ACROSS NAVIGATION =====
   const [formData, setFormData] = useState(() => {
-    // Try to restore from sessionStorage when returning from camera
     const saved = sessionStorage.getItem('reportFormData');
     if (saved) {
       try {
@@ -41,21 +40,18 @@ const ReportIssue = () => {
     return saved || null;
   });
 
-  // ===== SAVE FORM DATA TO SESSIONSTORAGE =====
   const saveFormState = () => {
     sessionStorage.setItem('reportFormData', JSON.stringify(formData));
     if (image) sessionStorage.setItem('reportImage', JSON.stringify(image));
     if (imagePreview) sessionStorage.setItem('reportImagePreview', imagePreview);
   };
 
-  // ===== CLEAR SESSIONSTORAGE ON SUCCESSFUL SUBMIT =====
   const clearFormState = () => {
     sessionStorage.removeItem('reportFormData');
     sessionStorage.removeItem('reportImage');
     sessionStorage.removeItem('reportImagePreview');
   };
 
-  // Get image from camera
   useEffect(() => {
     if (location.state?.capturedImage) {
       const file = location.state.capturedImage;
@@ -324,6 +320,7 @@ const ReportIssue = () => {
               />
             </div>
 
+            {/* ===== UPDATED PREVIEW SECTION (mobile only) ===== */}
             {imagePreview && (
               <div style={{
                 ...styles.previewContainer,
@@ -333,7 +330,7 @@ const ReportIssue = () => {
                 <div style={{
                   ...styles.previewWrapper,
                   width: isMobile ? '100%' : '220px',
-                  height: isMobile ? '180px' : '180px',
+                  height: isMobile ? '220px' : '180px',
                 }}>
                   <img
                     src={imagePreview}
@@ -341,7 +338,7 @@ const ReportIssue = () => {
                     style={{
                       width: '100%',
                       height: '100%',
-                      objectFit: 'contain',
+                      objectFit: 'cover',
                       borderRadius: '10px',
                     }}
                   />
@@ -351,15 +348,16 @@ const ReportIssue = () => {
                   onClick={handleRemoveImage}
                   style={{
                     ...styles.removeImageBtn,
-                    fontSize: isMobile ? '26px' : '28px',
-                    top: isMobile ? '-6px' : '-8px',
-                    right: isMobile ? '-6px' : '-8px',
+                    fontSize: isMobile ? '28px' : '28px',
+                    top: isMobile ? '-8px' : '-8px',
+                    right: isMobile ? '-8px' : '-8px',
                   }}
                 >
                   <IoCloseCircle />
                 </button>
               </div>
             )}
+            {/* ==================================== */}
           </div>
 
           <div style={styles.formGroup}>
@@ -430,7 +428,7 @@ const ReportIssue = () => {
   );
 };
 
-// ===== STYLES =====
+// ===== STYLES (unchanged) =====
 const styles = {
   container: {
     maxWidth: '700px',

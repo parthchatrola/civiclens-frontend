@@ -20,18 +20,25 @@ const CameraPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // ===== START CAMERA – simplified, reliable constraints =====
   const startCamera = async () => {
     try {
       setError('');
+      // Stop any existing stream first
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
+      }
+
       const constraints = {
         video: {
-          facingMode: { ideal: facingMode },
-          zoom: { ideal: 1, exact: 1 },          // enforce 1x zoom
+          facingMode: facingMode,           // 'environment' or 'user'
           width: { ideal: isDesktop ? 1920 : 1280 },
           height: { ideal: isDesktop ? 1080 : 720 },
         },
         audio: false,
       };
+
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 
       setStream(mediaStream);
@@ -44,39 +51,18 @@ const CameraPage = () => {
       }
     } catch (err) {
       console.error('Camera error:', err);
-      // fallback if exact zoom fails
-      if (err.name === 'OverconstrainedError') {
-        try {
-          const fallbackConstraints = {
-            video: {
-              facingMode: { ideal: facingMode },
-              width: { ideal: isDesktop ? 1920 : 1280 },
-              height: { ideal: isDesktop ? 1080 : 720 },
-            },
-            audio: false,
-          };
-          const fallbackStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
-          setStream(fallbackStream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = fallbackStream;
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current.play();
-              setIsCameraReady(true);
-            };
-          }
-          return;
-        } catch (fallbackErr) {
-          setError('Failed to access camera. Please try again.');
-          return;
-        }
-      }
+      let msg = 'Failed to access camera.';
       if (err.name === 'NotAllowedError') {
-        setError('Camera access denied. Please allow camera permissions and try again.');
+        msg = 'Camera access denied. Please allow camera permissions and try again.';
       } else if (err.name === 'NotFoundError') {
-        setError('No camera found on this device.');
-      } else {
-        setError('Failed to access camera. Please try again.');
+        msg = 'No camera found on this device.';
+      } else if (err.name === 'NotReadableError') {
+        msg = 'Camera is busy or not readable. Try restarting your phone.';
+      } else if (err.name === 'OverconstrainedError') {
+        msg = 'Camera does not support the requested settings. Please try again.';
       }
+      setError(msg);
+      setIsCameraReady(false);
     }
   };
 
@@ -99,7 +85,6 @@ const CameraPage = () => {
     canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     
-    // Draw exactly as the camera sees it – no mirroring
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     canvas.toBlob((blob) => {
@@ -114,7 +99,8 @@ const CameraPage = () => {
     const newMode = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(newMode);
     stopCamera();
-    setTimeout(startCamera, 300);
+    // Give time for the stream to fully stop
+    setTimeout(startCamera, 500);
   };
 
   const usePhoto = () => {
@@ -185,7 +171,7 @@ const CameraPage = () => {
           <>
             <video
               ref={videoRef}
-              style={styles.video}               // no transform – natural orientation
+              style={styles.video}
               playsInline
               autoPlay
               muted
@@ -207,7 +193,6 @@ const CameraPage = () => {
                 <button onClick={startCamera} style={styles.retryBtn}>Retry</button>
               </div>
             )}
-            {/* ===== REMOVED GRID OVERLAY ===== */}
           </>
         ) : (
           <motion.div
@@ -252,7 +237,7 @@ const CameraPage = () => {
   );
 };
 
-// ===== STYLES – no grid lines =====
+// ===== STYLES (no grid lines) =====
 const styles = {
   container: {
     position: 'fixed',

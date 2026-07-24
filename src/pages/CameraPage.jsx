@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const CameraPage = () => {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [stream, setStream] = useState(null);
-  const [capturedImage, setCapturedImage] = useState(null); // File object
+  const [capturedImage, setCapturedImage] = useState(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [facingMode, setFacingMode] = useState('environment');
@@ -20,14 +20,13 @@ const CameraPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ===== START CAMERA =====
   const startCamera = async () => {
     try {
       setError('');
       const constraints = {
         video: {
-          facingMode: { ideal: facingMode },  // more flexible than string
-          zoom: 1,                            // fixes 0.5x on some devices
+          facingMode: { ideal: facingMode },
+          zoom: { ideal: 1, exact: 1 },          // enforce 1x zoom
           width: { ideal: isDesktop ? 1920 : 1280 },
           height: { ideal: isDesktop ? 1080 : 720 },
         },
@@ -45,6 +44,32 @@ const CameraPage = () => {
       }
     } catch (err) {
       console.error('Camera error:', err);
+      // fallback if exact zoom fails
+      if (err.name === 'OverconstrainedError') {
+        try {
+          const fallbackConstraints = {
+            video: {
+              facingMode: { ideal: facingMode },
+              width: { ideal: isDesktop ? 1920 : 1280 },
+              height: { ideal: isDesktop ? 1080 : 720 },
+            },
+            audio: false,
+          };
+          const fallbackStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+          setStream(fallbackStream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = fallbackStream;
+            videoRef.current.onloadedmetadata = () => {
+              videoRef.current.play();
+              setIsCameraReady(true);
+            };
+          }
+          return;
+        } catch (fallbackErr) {
+          setError('Failed to access camera. Please try again.');
+          return;
+        }
+      }
       if (err.name === 'NotAllowedError') {
         setError('Camera access denied. Please allow camera permissions and try again.');
       } else if (err.name === 'NotFoundError') {
@@ -55,7 +80,6 @@ const CameraPage = () => {
     }
   };
 
-  // ===== STOP CAMERA =====
   const stopCamera = () => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
@@ -64,7 +88,6 @@ const CameraPage = () => {
     setIsCameraReady(false);
   };
 
-  // ===== CAPTURE PHOTO =====
   const capturePhoto = () => {
     if (!videoRef.current || !isCameraReady) return;
 
@@ -76,10 +99,9 @@ const CameraPage = () => {
     canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     
-    // No mirroring – draw exactly as the camera sees it
+    // Draw exactly as the camera sees it – no mirroring
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // Convert to File object
     canvas.toBlob((blob) => {
       const file = new File([blob], 'captured_image.jpg', { type: 'image/jpeg' });
       setCapturedImage(file);
@@ -88,53 +110,42 @@ const CameraPage = () => {
     }, 'image/jpeg', 0.95);
   };
 
-  // ===== FLIP CAMERA =====
   const flipCamera = () => {
     const newMode = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(newMode);
     stopCamera();
-    setTimeout(() => startCamera(), 300);
+    setTimeout(startCamera, 300);
   };
 
-  // ===== USE PHOTO =====
   const usePhoto = () => {
     if (!capturedImage) return;
     navigate('/report-issue', { state: { capturedImage } });
   };
 
-  // ===== RETAKE PHOTO =====
   const retakePhoto = () => {
     setCapturedImage(null);
     startCamera();
   };
 
-  // ===== GO BACK =====
   const goBack = () => {
     stopCamera();
     navigate(-1);
   };
 
-  // ===== START CAMERA ON MOUNT =====
   useEffect(() => {
     startCamera();
-    return () => stopCamera();
+    return stopCamera;
   }, []);
 
-  // ===== KEYBOARD SHORTCUTS =====
   useEffect(() => {
     const handleKeyPress = (e) => {
-      if (e.key === 'Enter' && isCameraReady && !capturedImage) {
-        capturePhoto();
-      }
-      if (e.key === 'Escape') {
-        goBack();
-      }
+      if (e.key === 'Enter' && isCameraReady && !capturedImage) capturePhoto();
+      if (e.key === 'Escape') goBack();
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isCameraReady, capturedImage]);
 
-  // ===== DYNAMIC STYLES BASED ON DESKTOP =====
   const viewfinderStyles = {
     ...styles.viewfinder,
     maxWidth: isDesktop ? '85%' : '500px',
@@ -142,39 +153,28 @@ const CameraPage = () => {
     borderRadius: isDesktop ? '16px' : '24px',
   };
 
-  const containerPadding = isDesktop ? '30px 40px' : '20px';
-  const headerPadding = isDesktop ? '16px 4px' : '8px 4px';
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      style={{
-        ...styles.container,
-        padding: containerPadding,
-      }}
+      style={{ ...styles.container, padding: isDesktop ? '30px 40px' : '20px' }}
     >
-      {/* HEADER */}
+      {/* Header */}
       <motion.div
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        style={{
-          ...styles.header,
-          padding: headerPadding,
-        }}
+        style={{ ...styles.header, padding: isDesktop ? '16px 4px' : '8px 4px' }}
       >
         <button onClick={goBack} style={styles.closeBtn}>✕</button>
         <span style={styles.headerTitle}>📷 Camera</span>
         {isCameraReady && !capturedImage && (
-          <button onClick={flipCamera} style={styles.flipBtn}>
-            🔄 Flip
-          </button>
+          <button onClick={flipCamera} style={styles.flipBtn}>🔄 Flip</button>
         )}
       </motion.div>
 
-      {/* CAMERA VIEWFINDER */}
+      {/* Viewfinder */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -185,7 +185,7 @@ const CameraPage = () => {
           <>
             <video
               ref={videoRef}
-              style={styles.video} // No transform – natural orientation
+              style={styles.video}               // no transform – natural orientation
               playsInline
               autoPlay
               muted
@@ -207,12 +207,7 @@ const CameraPage = () => {
                 <button onClick={startCamera} style={styles.retryBtn}>Retry</button>
               </div>
             )}
-            <div style={styles.gridOverlay}>
-              <div style={styles.gridLineHorizontal} />
-              <div style={styles.gridLineHorizontal2} />
-              <div style={styles.gridLineVertical} />
-              <div style={styles.gridLineVertical2} />
-            </div>
+            {/* ===== REMOVED GRID OVERLAY ===== */}
           </>
         ) : (
           <motion.div
@@ -227,29 +222,15 @@ const CameraPage = () => {
               style={styles.previewImage}
             />
             <div style={styles.previewActions}>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={retakePhoto}
-                style={styles.retakeBtn}
-              >
-                🔄 Retake
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={usePhoto}
-                style={styles.useBtn}
-              >
-                ✅ Use Photo
-              </motion.button>
+              <button onClick={retakePhoto} style={styles.retakeBtn}>🔄 Retake</button>
+              <button onClick={usePhoto} style={styles.useBtn}>✅ Use Photo</button>
             </div>
           </motion.div>
         )}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </motion.div>
 
-      {/* CAPTURE BUTTON */}
+      {/* Capture Button */}
       {isCameraReady && !capturedImage && !error && (
         <motion.div
           initial={{ y: 50, opacity: 0 }}
@@ -257,32 +238,13 @@ const CameraPage = () => {
           transition={{ delay: 0.4, type: 'spring', stiffness: 300, damping: 25 }}
           style={styles.captureSection}
         >
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            animate={{
-              scale: isCapturing ? [1, 1.2, 1] : 1,
-            }}
-            transition={{
-              scale: { duration: 0.5, ease: 'easeInOut' },
-            }}
+          <button
             onClick={capturePhoto}
             disabled={!isCameraReady || isCapturing}
-            style={{
-              ...styles.captureBtn,
-              opacity: isCapturing ? 0.6 : 1,
-            }}
+            style={{ ...styles.captureBtn, opacity: isCapturing ? 0.6 : 1 }}
           >
-            <motion.div
-              animate={{
-                scale: isCapturing ? [1, 1.5, 1] : 1,
-              }}
-              transition={{
-                scale: { duration: 0.3, ease: 'easeInOut' },
-              }}
-              style={styles.captureInner}
-            />
-          </motion.button>
+            <div style={styles.captureInner} />
+          </button>
           <p style={styles.captureHint}>Press Enter or tap to capture</p>
         </motion.div>
       )}
@@ -290,7 +252,7 @@ const CameraPage = () => {
   );
 };
 
-// ===== STYLES (unchanged) =====
+// ===== STYLES – no grid lines =====
 const styles = {
   container: {
     position: 'fixed',
@@ -327,7 +289,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     backdropFilter: 'blur(10px)',
-    transition: 'background 0.3s',
   },
   headerTitle: {
     color: 'white',
@@ -344,7 +305,6 @@ const styles = {
     cursor: 'pointer',
     backdropFilter: 'blur(10px)',
     fontWeight: '500',
-    transition: 'background 0.3s',
   },
   viewfinder: {
     flex: 1,
@@ -418,47 +378,6 @@ const styles = {
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',
-  },
-  gridOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    pointerEvents: 'none',
-    opacity: 0.3,
-  },
-  gridLineHorizontal: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: '33.33%',
-    height: '1px',
-    background: 'rgba(255,255,255,0.5)',
-  },
-  gridLineHorizontal2: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: '66.66%',
-    height: '1px',
-    background: 'rgba(255,255,255,0.5)',
-  },
-  gridLineVertical: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: '33.33%',
-    width: '1px',
-    background: 'rgba(255,255,255,0.5)',
-  },
-  gridLineVertical2: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: '66.66%',
-    width: '1px',
-    background: 'rgba(255,255,255,0.5)',
   },
   previewContainer: {
     width: '100%',

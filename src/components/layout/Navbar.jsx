@@ -24,6 +24,12 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('civiclens_current_user');
+    // ===== CLEAR REPORT FORM SESSION DATA =====
+    sessionStorage.removeItem('reportFormData');
+    sessionStorage.removeItem('reportImage');
+    sessionStorage.removeItem('reportImagePreview');
+    sessionStorage.removeItem('reportUserId');
+    // =========================================
     closeMenu();
     navigate('/login');
   };

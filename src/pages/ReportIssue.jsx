@@ -71,24 +71,25 @@ const ReportIssue = () => {
     if (currentUserId && savedUserId === currentUserId) {
       const saved = sessionStorage.getItem('reportImageBase64');
       if (saved) {
-        return saved; // Base64 string
+        return saved;
       }
     }
     return null;
   });
 
-  const [imageFile, setImageFile] = useState(null); // File object for submission
   const [imagePreview, setImagePreview] = useState(() => {
     const currentUserId = getCurrentUserId();
     const savedUserId = sessionStorage.getItem('reportUserId');
     if (currentUserId && savedUserId === currentUserId) {
       const saved = sessionStorage.getItem('reportImageBase64');
       if (saved) {
-        return saved; // Base64 is directly usable as src
+        return saved;
       }
     }
     return null;
   });
+
+  const [imageFile, setImageFile] = useState(null);
 
   // ===== SAVE FORM STATE =====
   const saveFormState = () => {
@@ -115,15 +116,19 @@ const ReportIssue = () => {
   useEffect(() => {
     if (location.state?.capturedImage) {
       const file = location.state.capturedImage;
-      fileToBase64(file).then((base64) => {
-        setImageBase64(base64);
-        setImagePreview(base64);
-        setImageFile(file);
-        const currentUserId = getCurrentUserId();
-        if (currentUserId) sessionStorage.setItem('reportUserId', currentUserId);
-        sessionStorage.setItem('reportImageBase64', base64);
-        window.history.replaceState({}, document.title);
-      });
+      fileToBase64(file)
+        .then((base64) => {
+          setImageBase64(base64);
+          setImagePreview(base64);
+          setImageFile(file);
+          const currentUserId = getCurrentUserId();
+          if (currentUserId) sessionStorage.setItem('reportUserId', currentUserId);
+          sessionStorage.setItem('reportImageBase64', base64);
+          window.history.replaceState({}, document.title);
+        })
+        .catch(() => {
+          setError('Failed to process camera image.');
+        });
     }
   }, [location]);
 
@@ -395,6 +400,7 @@ const ReportIssue = () => {
               />
             </div>
 
+            {/* ===== PREVIEW – shows actual image ===== */}
             {imagePreview && (
               <div style={{
                 ...styles.previewContainer,
@@ -408,11 +414,11 @@ const ReportIssue = () => {
                 }}>
                   <img
                     src={imagePreview}
-                    alt="Preview"
+                    alt="Uploaded issue"
                     style={{
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover',
+                      objectFit: 'contain',
                       borderRadius: '10px',
                     }}
                   />
@@ -431,6 +437,7 @@ const ReportIssue = () => {
                 </button>
               </div>
             )}
+            {/* ==================================== */}
           </div>
 
           <div style={styles.formGroup}>

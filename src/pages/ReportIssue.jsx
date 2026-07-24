@@ -4,6 +4,29 @@ import { addComplaint } from '../services/api';
 import Navbar from '../components/layout/Navbar';
 import { IoCloseCircle } from "react-icons/io5";
 
+// ===== Helper: Convert File to Base64 =====
+const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+// ===== Helper: Convert Base64 to File =====
+const base64ToFile = (base64, filename = 'image.jpg') => {
+  const arr = base64.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+};
+
 const ReportIssue = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -18,13 +41,13 @@ const ReportIssue = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ===== Get current user ID (for sessionStorage key) =====
+  // ===== Get current user ID =====
   const getCurrentUserId = () => {
     const user = JSON.parse(localStorage.getItem('civiclens_current_user'));
     return user?.id || null;
   };
 
-  // ===== FORM DATA – load from sessionStorage ONLY if same user =====
+  // ===== FORM DATA – load from sessionStorage if same user =====
   const [formData, setFormData] = useState(() => {
     const currentUserId = getCurrentUserId();
     const savedUserId = sessionStorage.getItem('reportUserId');
@@ -41,66 +64,66 @@ const ReportIssue = () => {
     return { title: '', description: '', location: '', latitude: '', longitude: '' };
   });
 
-  const [image, setImage] = useState(() => {
+  // ===== IMAGE – stored as Base64 string =====
+  const [imageBase64, setImageBase64] = useState(() => {
     const currentUserId = getCurrentUserId();
     const savedUserId = sessionStorage.getItem('reportUserId');
     if (currentUserId && savedUserId === currentUserId) {
-      const saved = sessionStorage.getItem('reportImage');
+      const saved = sessionStorage.getItem('reportImageBase64');
       if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // ignore
-        }
+        return saved; // Base64 string
       }
     }
     return null;
   });
 
+  const [imageFile, setImageFile] = useState(null); // File object for submission
   const [imagePreview, setImagePreview] = useState(() => {
     const currentUserId = getCurrentUserId();
     const savedUserId = sessionStorage.getItem('reportUserId');
     if (currentUserId && savedUserId === currentUserId) {
-      const saved = sessionStorage.getItem('reportImagePreview');
+      const saved = sessionStorage.getItem('reportImageBase64');
       if (saved) {
-        return saved;
+        return saved; // Base64 is directly usable as src
       }
     }
     return null;
   });
 
-  // ===== SAVE FORM DATA (with user ID) =====
+  // ===== SAVE FORM STATE =====
   const saveFormState = () => {
     const currentUserId = getCurrentUserId();
     if (currentUserId) {
       sessionStorage.setItem('reportUserId', currentUserId);
     }
     sessionStorage.setItem('reportFormData', JSON.stringify(formData));
-    if (image) sessionStorage.setItem('reportImage', JSON.stringify(image));
-    if (imagePreview) sessionStorage.setItem('reportImagePreview', imagePreview);
+    if (imageBase64) {
+      sessionStorage.setItem('reportImageBase64', imageBase64);
+    } else {
+      sessionStorage.removeItem('reportImageBase64');
+    }
   };
 
   // ===== CLEAR SESSIONSTORAGE =====
   const clearFormState = () => {
     sessionStorage.removeItem('reportFormData');
-    sessionStorage.removeItem('reportImage');
-    sessionStorage.removeItem('reportImagePreview');
+    sessionStorage.removeItem('reportImageBase64');
     sessionStorage.removeItem('reportUserId');
   };
 
-  // Get image from camera (no change)
+  // ===== Handle image from camera =====
   useEffect(() => {
     if (location.state?.capturedImage) {
       const file = location.state.capturedImage;
-      setImage(file);
-      const preview = URL.createObjectURL(file);
-      setImagePreview(preview);
-      // Save with current user
-      const currentUserId = getCurrentUserId();
-      if (currentUserId) sessionStorage.setItem('reportUserId', currentUserId);
-      sessionStorage.setItem('reportImage', JSON.stringify(file));
-      sessionStorage.setItem('reportImagePreview', preview);
-      window.history.replaceState({}, document.title);
+      fileToBase64(file).then((base64) => {
+        setImageBase64(base64);
+        setImagePreview(base64);
+        setImageFile(file);
+        const currentUserId = getCurrentUserId();
+        if (currentUserId) sessionStorage.setItem('reportUserId', currentUserId);
+        sessionStorage.setItem('reportImageBase64', base64);
+        window.history.replaceState({}, document.title);
+      });
     }
   }, [location]);
 
@@ -110,7 +133,7 @@ const ReportIssue = () => {
     sessionStorage.setItem('reportFormData', JSON.stringify(updated));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -124,14 +147,17 @@ const ReportIssue = () => {
     }
 
     setError('');
-    setImage(file);
-    const previewURL = URL.createObjectURL(file);
-    setImagePreview(previewURL);
-    // Save with current user
-    const currentUserId = getCurrentUserId();
-    if (currentUserId) sessionStorage.setItem('reportUserId', currentUserId);
-    sessionStorage.setItem('reportImage', JSON.stringify(file));
-    sessionStorage.setItem('reportImagePreview', previewURL);
+    try {
+      const base64 = await fileToBase64(file);
+      setImageBase64(base64);
+      setImagePreview(base64);
+      setImageFile(file);
+      const currentUserId = getCurrentUserId();
+      if (currentUserId) sessionStorage.setItem('reportUserId', currentUserId);
+      sessionStorage.setItem('reportImageBase64', base64);
+    } catch (err) {
+      setError('Failed to read image.');
+    }
   };
 
   const handleCameraOpen = () => {
@@ -140,10 +166,10 @@ const ReportIssue = () => {
   };
 
   const handleRemoveImage = () => {
-    setImage(null);
+    setImageBase64(null);
     setImagePreview(null);
-    sessionStorage.removeItem('reportImage');
-    sessionStorage.removeItem('reportImagePreview');
+    setImageFile(null);
+    sessionStorage.removeItem('reportImageBase64');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -182,7 +208,7 @@ const ReportIssue = () => {
 
     if (!formData.title.trim()) return setError('Title is required');
     if (!formData.description.trim()) return setError('Description is required');
-    if (!image) return setError('Image is required');
+    if (!imageBase64) return setError('Image is required');
     if (!formData.latitude || !formData.longitude) {
       return setError('GPS Location is mandatory. Please click "Get GPS"');
     }
@@ -197,8 +223,14 @@ const ReportIssue = () => {
     }
 
     try {
+      // Convert base64 to File if we don't have the original File
+      let fileToSend = imageFile;
+      if (!fileToSend) {
+        fileToSend = base64ToFile(imageBase64);
+      }
+
       const uploadData = new FormData();
-      uploadData.append("image", image);
+      uploadData.append("image", fileToSend);
 
       const aiResponse = await fetch(
         "http://127.0.0.1:8000/predict",

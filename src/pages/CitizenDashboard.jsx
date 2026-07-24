@@ -9,6 +9,7 @@ const CitizenDashboard = () => {
   const [myComplaints, setMyComplaints] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0 });
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [loading, setLoading] = useState(true); // ✅ Added loading state
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -16,7 +17,8 @@ const CitizenDashboard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
+  // ✅ Fetch complaints on mount – fresh data every time you visit
+  const fetchComplaints = () => {
     const currentUser = JSON.parse(localStorage.getItem('civiclens_current_user'));
     if (currentUser) {
       setUser(currentUser);
@@ -30,9 +32,14 @@ const CitizenDashboard = () => {
       const resolved = userComplaints.filter(c => c.status === 'Resolved').length;
       setStats({ total, pending, resolved });
     }
-  }, []);
+    setLoading(false);
+  };
 
-  if (!user) {
+  useEffect(() => {
+    fetchComplaints();
+  }, []); // ✅ Runs on mount – fresh data every time
+
+  if (!user && !loading) { // ✅ Check loading before showing "Please login"
     return (
       <div>
         <Navbar />
@@ -60,7 +67,7 @@ const CitizenDashboard = () => {
             ...styles.title,
             fontSize: isMobile ? '24px' : '2.2rem',
           }}>
-            👋 Welcome back, {user.name}!
+            👋 Welcome back, {user?.name || 'User'}!
           </h2>
           <p style={{
             ...styles.subtitle,
@@ -222,7 +229,7 @@ const CitizenDashboard = () => {
   );
 };
 
-// ===== STYLES – Clean, responsive =====
+// ===== STYLES – Clean, responsive (unchanged) =====
 const styles = {
   container: {
     maxWidth: '1100px',

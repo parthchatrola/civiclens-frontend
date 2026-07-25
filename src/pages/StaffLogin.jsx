@@ -3,15 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { findUser } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 
-const Login = () => {
+const StaffLogin = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -19,6 +13,13 @@ const Login = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -34,16 +35,21 @@ const Login = () => {
 
     setTimeout(() => {
       const user = findUser(formData.email, formData.password);
+
       if (user) {
-        // Only allow citizens
-        if (user.role !== 'citizen') {
-          setError('This login is for citizens only. Please use the Staff Login page.');
+        // Only allow officers and admins
+        if (user.role !== 'officer' && user.role !== 'admin') {
+          setError('Access denied. This login is for officers and admins only.');
           setLoading(false);
           return;
         }
         localStorage.setItem('civiclens_current_user', JSON.stringify(user));
         setLoading(false);
-        navigate('/citizen-dashboard');
+        if (user.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/officer-dashboard');
+        }
       } else {
         setError('Invalid email or password. Please try again.');
         setLoading(false);
@@ -74,7 +80,7 @@ const Login = () => {
         padding: isMobile ? '20px' : '0',
       }}
     >
-      {/* Green overlay */}
+      {/* Green overlay – matches Login page */}
       <div
         style={{
           position: 'absolute',
@@ -90,7 +96,7 @@ const Login = () => {
         }}
       />
 
-      {/* Login Card – Responsive */}
+      {/* Login Card – glass effect, same as citizen login */}
       <div
         className="login-card"
         style={{
@@ -109,61 +115,24 @@ const Login = () => {
           WebkitBackdropFilter: 'blur(4px)',
           border: '1px solid rgba(255, 255, 255, 0.10)',
           transition: 'background 0.3s ease, box-shadow 0.3s ease, padding 0.3s ease',
-          maxHeight: isMobile ? '90vh' : 'auto',
-          overflowY: isMobile ? 'auto' : 'visible',
         }}
       >
-        {/* ===== HEADER ROW – Logo left, Staff Login right ===== */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px',
-          }}
-        >
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: isMobile ? '28px' : '32px' }}>🏙️</span>
-              <span
-                style={{
-                  fontSize: isMobile ? '22px' : '26px',
-                  fontWeight: '800',
-                  background: 'linear-gradient(135deg, #48bb78 0%, #2f855a 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                CivicLens
-              </span>
-            </div>
-          </Link>
-
-          <Link
-            to="/staff-login"
-            style={{
-              color: '#48bb78',
-              fontWeight: '600',
-              fontSize: isMobile ? '13px' : '15px',
-              textDecoration: 'none',
-              background: 'rgba(72, 187, 120, 0.10)',
-              padding: '6px 14px',
-              borderRadius: '20px',
-              border: '1px solid rgba(72, 187, 120, 0.20)',
-              transition: 'all 0.2s ease',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(72, 187, 120, 0.20)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(72, 187, 120, 0.10)';
-            }}
-          >
-            👮 Staff Login
-          </Link>
-        </div>
-        {/* ============================================ */}
+        <Link to="/" style={{ textDecoration: 'none', display: 'block', textAlign: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <span style={{ fontSize: isMobile ? '28px' : '32px' }}>🏙️</span>
+            <span
+              style={{
+                fontSize: isMobile ? '24px' : '28px',
+                fontWeight: '800',
+                background: 'linear-gradient(135deg, #48bb78 0%, #2f855a 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              CivicLens
+            </span>
+          </div>
+        </Link>
 
         <h2
           style={{
@@ -174,7 +143,7 @@ const Login = () => {
             transition: 'color 0.3s ease',
           }}
         >
-          Welcome Back!
+          Staff Login
         </h2>
         <p
           style={{
@@ -185,7 +154,7 @@ const Login = () => {
             transition: 'color 0.3s ease',
           }}
         >
-          Login to report and track civic issues
+          Login for officers and admins
         </p>
 
         {error && <div className="error-message">{error}</div>}
@@ -289,9 +258,9 @@ const Login = () => {
             transition: 'color 0.3s ease',
           }}
         >
-          Don't have an account?{' '}
-          <Link to="/register" style={{ color: '#48bb78', textDecoration: 'none', fontWeight: '600' }}>
-            Register here
+          Are you a citizen?{' '}
+          <Link to="/login" style={{ color: '#48bb78', textDecoration: 'none', fontWeight: '600' }}>
+            Citizen Login
           </Link>
         </p>
       </div>
@@ -299,4 +268,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default StaffLogin;

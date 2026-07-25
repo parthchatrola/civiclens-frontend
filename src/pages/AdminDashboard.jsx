@@ -4,7 +4,9 @@ import {
   getComplaints, 
   getUsers, 
   deleteComplaint, 
-  updateComplaintStatus 
+  updateComplaintStatus,
+  addUser,
+  isEmailTaken               // <-- new import
 } from '../services/api';
 import Navbar from '../components/layout/Navbar';
 import { showToast } from '../components/common/Toast';
@@ -67,6 +69,17 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+  // User Management State
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'officer',
+  });
+  const [staffUsers, setStaffUsers] = useState([]);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -104,6 +117,9 @@ const AdminDashboard = () => {
       
       const allUsers = getUsers();
       setOfficers(allUsers.filter(u => u.role === 'officer'));
+      
+      // Staff list (officers + admins)
+      setStaffUsers(allUsers.filter(u => u.role === 'officer' || u.role === 'admin'));
       
       const total = allComplaints.length;
       const pending = allComplaints.filter(c => c.status === 'Pending').length;
@@ -143,10 +159,43 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, []);
 
+  // ===== USER MANAGEMENT FUNCTIONS =====
+  const handleAddUser = (e) => {
+    e.preventDefault();
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      showToast('Please fill all required fields (Name, Email, Password).', 'error');
+      return;
+    }
+    if (isEmailTaken(newUser.email)) {
+      showToast('This email is already registered.', 'error');
+      return;
+    }
+    // Add user with the selected role
+    addUser({
+      name: newUser.name,
+      email: newUser.email,
+      phone: newUser.phone || '',
+      password: newUser.password,
+      role: newUser.role,
+    });
+    showToast('✅ User added successfully!', 'success');
+    // Reset form and refresh list
+    setNewUser({ name: '', email: '', phone: '', password: '', role: 'officer' });
+    setShowUserForm(false);
+    // Refresh data
+    const allUsers = getUsers();
+    setStaffUsers(allUsers.filter(u => u.role === 'officer' || u.role === 'admin'));
+    setOfficers(allUsers.filter(u => u.role === 'officer'));
+  };
+
+  const handleNewUserChange = (e) => {
+    setNewUser({ ...newUser, [e.target.name]: e.target.value });
+  };
+
+  // ===== COMPLAINT MANAGEMENT FUNCTIONS =====
   const openAssignModal = (complaintId, currentOfficerId) => {
     setModalComplaintId(complaintId);
     setSelectedOfficerId(currentOfficerId || '');
@@ -182,6 +231,7 @@ const AdminDashboard = () => {
     return officer ? officer.name : 'Unknown';
   };
 
+  // ===== CHART DATA =====
   const getCategoryData = () => {
     const categories = {};
     complaints.forEach(c => {
@@ -571,6 +621,141 @@ const AdminDashboard = () => {
           </motion.div>
         )}
 
+        {/* ============================================================ */}
+        {/* ===== NEW: MANAGE USERS SECTION ===== */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0 }}
+          style={{ marginTop: '40px' }}
+        >
+          <h3 style={{ ...styles.sectionTitle, marginBottom: '15px', fontSize: isMobile ? '18px' : '20px' }}>
+            👥 Manage Officers & Admins
+          </h3>
+
+          <button
+            onClick={() => setShowUserForm(!showUserForm)}
+            style={{
+              ...styles.addUserBtn,
+              padding: isMobile ? '10px 16px' : '12px 24px',
+              fontSize: isMobile ? '14px' : '16px',
+            }}
+          >
+            {showUserForm ? '✕ Cancel' : '+ Add New User'}
+          </button>
+
+          {showUserForm && (
+            <motion.form
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              onSubmit={handleAddUser}
+              style={{
+                ...styles.userForm,
+                gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+                gap: isMobile ? '12px' : '16px',
+                padding: isMobile ? '16px' : '20px',
+              }}
+            >
+              <input
+                type="text"
+                name="name"
+                placeholder="Full Name *"
+                value={newUser.name}
+                onChange={handleNewUserChange}
+                required
+                style={styles.userInput}
+              />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email *"
+                value={newUser.email}
+                onChange={handleNewUserChange}
+                required
+                style={styles.userInput}
+              />
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone (optional)"
+                value={newUser.phone}
+                onChange={handleNewUserChange}
+                style={styles.userInput}
+              />
+              <input
+                type="password"
+                name="password"
+                placeholder="Password * (min 6 chars)"
+                value={newUser.password}
+                onChange={handleNewUserChange}
+                required
+                minLength={6}
+                style={styles.userInput}
+              />
+              <select
+                name="role"
+                value={newUser.role}
+                onChange={handleNewUserChange}
+                style={styles.userInput}
+              >
+                <option value="officer">Officer</option>
+                <option value="admin">Admin</option>
+              </select>
+              <button
+                type="submit"
+                style={{
+                  ...styles.saveBtn,
+                  padding: isMobile ? '12px' : '14px',
+                  fontSize: isMobile ? '14px' : '16px',
+                }}
+              >
+                ➕ Add User
+              </button>
+            </motion.form>
+          )}
+
+          {/* Staff List Table */}
+          <div style={{ marginTop: '20px', overflowX: 'auto' }}>
+            {staffUsers.length === 0 ? (
+              <div style={styles.empty}>No officers or admins yet.</div>
+            ) : (
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Name</th>
+                    <th style={styles.th}>Email</th>
+                    <th style={styles.th}>Phone</th>
+                    <th style={styles.th}>Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staffUsers.map(u => (
+                    <tr key={u.id} style={styles.tr}>
+                      <td style={styles.td}>{u.name}</td>
+                      <td style={styles.td}>{u.email}</td>
+                      <td style={styles.td}>{u.phone || '-'}</td>
+                      <td style={styles.td}>
+                        <span style={{
+                          padding: '2px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          background: u.role === 'admin' ? '#fc8181' : '#48bb78',
+                          color: 'white',
+                        }}>
+                          {u.role.toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </motion.div>
+        {/* ============================================================ */}
+
         {/* Assign Officer Modal */}
         <AnimatePresence>
           {showAssignModal && (
@@ -853,6 +1038,53 @@ const styles = {
     borderRadius: '8px',
     cursor: 'pointer',
     fontWeight: '600',
+  },
+
+  // New user management styles
+  addUserBtn: {
+    padding: '12px 24px',
+    background: 'linear-gradient(135deg, #48bb78 0%, #2f855a 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '40px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    boxShadow: '0 4px 15px rgba(72,187,120,0.25)',
+    transition: 'all 0.2s ease',
+    width: 'auto',
+  },
+  userForm: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    background: 'var(--bg-card, #ffffff)',
+    padding: '20px',
+    borderRadius: '12px',
+    boxShadow: 'var(--shadow, 0 2px 10px rgba(0,0,0,0.05))',
+    border: '1px solid var(--border-color, #e2e8f0)',
+    marginTop: '12px',
+  },
+  userInput: {
+    width: '100%',
+    padding: '10px 14px',
+    border: '2px solid var(--border-color, #e2e8f0)',
+    borderRadius: '8px',
+    fontSize: '14px',
+    background: 'var(--bg-input, #f7fafc)',
+    color: 'var(--text-primary, #1a202c)',
+    transition: 'border 0.3s',
+    boxSizing: 'border-box',
+  },
+  saveBtn: {
+    padding: '12px',
+    background: 'linear-gradient(135deg, #48bb78 0%, #2f855a 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '16px',
+    gridColumn: 'span 1',
   },
 };
 

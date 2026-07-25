@@ -16,6 +16,7 @@ import NotFound from '../pages/NotFound';
 import PrivacyPolicy from '../pages/PrivacyPolicy';
 import TermsOfService from '../pages/TermsOfService';
 import CameraPage from '../pages/CameraPage';
+import StaffLogin from '../pages/StaffLogin';
 
 const AppRoutes = () => {
   return (
@@ -26,6 +27,7 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/camera" element={<CameraPage />} />
+        <Route path="/staff-login" element={<StaffLogin />} />
         {/* Citizen Routes */}
         <Route path="/citizen-dashboard" element={<CitizenDashboard />} />
         <Route path="/report-issue" element={<ReportIssue />} />

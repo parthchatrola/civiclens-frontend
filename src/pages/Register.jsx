@@ -20,7 +20,6 @@ const Register = () => {
     phone: '',
     password: '',
     confirmPassword: '',
-    role: 'citizen',
   });
 
   const [generatedOtp, setGeneratedOtp] = useState('');
@@ -98,7 +97,7 @@ const Register = () => {
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
-        role: formData.role,
+        role: 'citizen',
       });
 
       setSuccess('Registration successful! Redirecting to login...');
@@ -209,7 +208,7 @@ const Register = () => {
             transition: 'color 0.3s ease',
           }}
         >
-          Verify your phone and join CivicLens
+          Join as a citizen and report issues
         </p>
 
         {error && <div className="error-message">{error}</div>}
@@ -471,40 +470,6 @@ const Register = () => {
                 transition: 'border 0.3s, background 0.3s, color 0.3s',
               }}
             />
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '18px' }}>
-            <label
-              style={{
-                display: 'block',
-                fontWeight: '600',
-                color: 'var(--text-primary, #2d3748)',
-                marginBottom: '6px',
-                fontSize: isMobile ? '13px' : '14px',
-                transition: 'color 0.3s ease',
-              }}
-            >
-              Register as
-            </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: isMobile ? '10px 14px' : '12px 16px',
-                border: '2px solid var(--border-color, #e2e8f0)',
-                borderRadius: '12px',
-                fontSize: isMobile ? '13px' : '14px',
-                background: 'var(--bg-input, #f7fafc)',
-                color: 'var(--text-primary, #2d3748)',
-                transition: 'border 0.3s, background 0.3s, color 0.3s',
-              }}
-            >
-              <option value="citizen">Citizen</option>
-              <option value="officer">Officer</option>
-              <option value="admin">Admin</option>
-            </select>
           </div>
 
           <button

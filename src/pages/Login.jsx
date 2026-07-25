@@ -35,7 +35,6 @@ const Login = () => {
     setTimeout(() => {
       const user = findUser(formData.email, formData.password);
       if (user) {
-        // Only allow citizens
         if (user.role !== 'citizen') {
           setError('This login is for citizens only. Please use the Staff Login page.');
           setLoading(false);
@@ -90,7 +89,7 @@ const Login = () => {
         }}
       />
 
-      {/* Login Card – Responsive */}
+      {/* Login Card */}
       <div
         className="login-card"
         style={{
